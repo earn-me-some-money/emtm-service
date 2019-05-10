@@ -6,9 +6,10 @@ edition = "2018"
 
 [dependencies]
 futures = "0.1.26"
-diesel = { version = "1.4.0", features = ["mysql"] }
 dotenv = "0.10"
 actix-web = "1.0.0-beta.3"
 num_cpus = "0.2"
 log = "0.4.6"
 env_logger = "0.6.1"
+emtm_db = { git = "https://github.com/earn-me-some-money/emtm-db.git" }
+
