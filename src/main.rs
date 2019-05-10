@@ -29,6 +29,7 @@ fn main() -> std::io::Result<()> {
             .wrap(middleware::Compress::default())
             .wrap(middleware::Logger::default())
             .service(index)
+            .service(web::resource("/index").to(|| "Emtm Index Page~\r\n"))
             .service(hello_name)
             .service(
                 web::resource("/async/")
@@ -36,9 +37,8 @@ fn main() -> std::io::Result<()> {
                     .default_service(web::route().to(|| HttpResponse::MethodNotAllowed()))
                     .route(web::get().to_async(index_async)),
             )
-            .service(web::resource("/res/test1.html").to(|| "Test\r\n"))
     })
-    .bind("127.0.0.1:9876")?
+    .bind("localhost:8080")?
     .workers(num_cpus::get())
     .run()
 }
