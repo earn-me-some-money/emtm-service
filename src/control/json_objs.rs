@@ -105,14 +105,14 @@ pub struct WithdrawObj {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct OriginObj {
     pub code: bool,
-    pub errMessage: String,
+    pub err_message: String,
 }
 
 // View Task Status Struct
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TaskViewObj {
     pub code: bool,
-    pub errMessage: String,
+    pub err_message: String,
     pub task_status: String,
 }
 
@@ -120,6 +120,6 @@ pub struct TaskViewObj {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CreditScoreObj {
     pub code: bool,
-    pub errMessage: String,
+    pub err_message: String,
     pub credit_code: i64,
 }
