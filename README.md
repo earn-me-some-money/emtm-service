@@ -7,6 +7,7 @@ Server Repository for Earn Me The Money Project
 
 - Build: `cargo build`
 - Run: `cargo run`
+- API Docs: [Emtm_Server_API_Documents](https://github.com/earn-me-some-money/Documents/blob/master/Server_API_Docs/Emtm_Server_Side_API_Docs.md)
 
 ## Contributing Guideline
 When you are making a commit, please make sure:

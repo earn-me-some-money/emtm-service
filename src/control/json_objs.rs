@@ -121,5 +121,5 @@ pub struct TaskViewObj {
 pub struct CreditScoreObj {
     pub code: bool,
     pub err_message: String,
-    pub credit_code: i64,
+    pub credit_score: i64,
 }
