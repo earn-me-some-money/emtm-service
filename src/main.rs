@@ -19,7 +19,8 @@ fn main() -> std::io::Result<()> {
             // Route URL-handlers
             // Common API Routers
             .service(web::resource("/").route(web::get().to(router::index)))
-            .service(web::resource("/logup").route(web::post().to(router::logup)))
+            .service(web::resource("/cow_logup").route(web::post().to(router::cow_logup)))
+            .service(web::resource("/student_logup").route(web::post().to(router::stu_logup)))
             .service(web::resource("/login").route(web::post().to(router::login)))
             .service(web::resource("/release_task").route(web::post().to(router::release_task)))
             .service(web::resource("/check_task").route(web::post().to(router::check_task)))

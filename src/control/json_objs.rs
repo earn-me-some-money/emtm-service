@@ -4,17 +4,35 @@ use serde_derive::{Deserialize, Serialize};
 * Part One. Request Json Struct
 */
 
-// Logup Parse Json Struct
+// Cow-Logup Parse Json Struct
 #[derive(Debug, Serialize, Deserialize)]
-pub struct LogupObj {
+pub struct CowLogupObj {
+    // Common Values
     pub username: String,
     pub userid: String,
     pub wechat_ok: bool,
-    pub logup_mode: bool,
     pub email: String,
     pub phone: String,
     pub infos: String,
+    // Cows Value
     pub organization: String,
+}
+
+// Student-Logup Parse Json Struct
+#[derive(Debug, Serialize, Deserialize)]
+pub struct StuLogupObj {
+    // Common Values
+    pub username: String,
+    pub userid: String,
+    pub wechat_ok: bool,
+    pub email: String,
+    pub phone: String,
+    pub infos: String,
+    // Student Values
+    pub school_name: String,
+    pub student_id: String,
+    pub major: String,
+    pub year: i32,
 }
 
 // Login Parse Json Struct
