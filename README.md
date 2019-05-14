@@ -1,5 +1,5 @@
-# emtm-service
-[![Build Status](https://travis-ci.com/earn-me-some-money/emtm-service.svg?branch=master)](https://travis-ci.com/earn-me-some-money/emtm-service)
+# emtm-web
+[![Build Status](https://travis-ci.com/earn-me-some-money/emtm-web.svg?branch=master)](https://travis-ci.com/earn-me-some-money/emtm-web)
 
 Server Repository for Earn Me The Money Project
 
