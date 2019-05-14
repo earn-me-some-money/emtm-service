@@ -9,6 +9,7 @@ use actix_web::{web, HttpResponse};
 use regex::Regex;
 
 use crate::control::json_objs;
+use emtm_db::controller::{Controller, user_controller::UserController, school_controller_zh::SchoolControllerZh};
 
 // Basic Function Methods
 
@@ -21,11 +22,18 @@ pub fn index() -> HttpResponse {
     HttpResponse::Ok().json(index_obj)
 }
 
-pub fn logup_cow(username: &str, email: &str, organization: &str) -> HttpResponse {
+pub fn logup_cow(userid: &str, email: &str, organization: &str) -> HttpResponse {
     let mut result_obj = json_objs::OriginObj {
         code: true,
         err_message: "".to_string(),
     };
+    // Init DB Control
+    let db_control = Controller::new();
+    // Define Duplication error message
+    let dup_errors = ["UserID", "Email", "Organization", "Logup Error!", "Duplication!"];
+    // Variable order: userid, email, organization
+    let mut dup_array = [false, false, false];
+    let mut logup_enable = true;
 
     // Check email format
     if !email_format(email) {
@@ -33,12 +41,27 @@ pub fn logup_cow(username: &str, email: &str, organization: &str) -> HttpRespons
         result_obj.err_message = "Cannot Pass Email Format Checking!".to_string();
     }
 
-    // Make sure not-double logup
+    // Check registered infos duplication
+    match db_control.get_user_from_username(userid) {
+        Some(_x) => dup_array[0] = true,
+        None => dup_array[0] = false
+    }
+
+    for index in 0..3 {
+        if dup_array[index] {
+            logup_enable = false;
+            result_obj.err_message = [dup_errors[3], dup_errors[index], dup_errors[4]].join(" ").to_string();
+            break;
+        }
+    }
 
     // Do organization authenitication
 
     // Pass checking, do db-storing
-    println!("{}, {}, {}", username, email, organization);
+    if logup_enable {
+        println!("{}, {}, {}", userid, email, organization);
+    
+    }
 
     HttpResponse::Ok().json(result_obj)
 }
@@ -64,7 +87,7 @@ pub fn logup_student(data: web::Json<json_objs::LogupObj>) -> HttpResponse {
     HttpResponse::Ok().json(result_obj)
 }
 
-pub fn login_cow(username: &str) -> HttpResponse {
+pub fn login_cow(userid: &str) -> HttpResponse {
     let result_obj = json_objs::OriginObj {
         code: true,
         err_message: "".to_string(),
@@ -74,18 +97,18 @@ pub fn login_cow(username: &str) -> HttpResponse {
 
     // Pass checking
 
-    println!("{}", username);
+    println!("{}", userid);
 
     HttpResponse::Ok().json(result_obj)
 }
 
-pub fn login_student(username: &str) -> HttpResponse {
+pub fn login_student(userid: &str) -> HttpResponse {
     let result_obj = json_objs::OriginObj {
         code: true,
         err_message: "".to_string(),
     };
 
-    println!("{}", username);
+    println!("{}", userid);
 
     // Check user registered or not
 

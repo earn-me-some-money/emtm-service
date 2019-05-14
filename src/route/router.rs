@@ -25,7 +25,7 @@ pub fn logup(_data: web::Json<json_objs::LogupObj>) -> HttpResponse {
     if _data.logup_mode {
         return controller::logup_student(_data);
     } else {
-        controller::logup_cow(&_data.username, &_data.email, &_data.organization)
+        controller::logup_cow(&_data.userid, &_data.email, &_data.organization)
     }
 }
 
@@ -41,9 +41,9 @@ pub fn login(_data: web::Json<json_objs::LoginObj>) -> HttpResponse {
     }
 
     if _data.login_mode {
-        return controller::login_student(&_data.username);
+        return controller::login_student(&_data.userid);
     } else {
-        controller::login_student(&_data.username)
+        controller::login_student(&_data.userid)
     }
 }
 
