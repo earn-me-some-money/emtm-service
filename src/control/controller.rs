@@ -1,9 +1,9 @@
 /*
 * Emtm-Controller Modules
 */
+extern crate emtm_db;
 extern crate json;
 extern crate regex;
-extern crate emtm_db;
 
 use actix_web::{web, HttpResponse};
 use regex::Regex;
@@ -35,9 +35,7 @@ pub fn logup_cow(username: &str, email: &str, organization: &str) -> HttpRespons
 
     // Make sure not-double logup
 
-
     // Do organization authenitication
-
 
     // Pass checking, do db-storing
     println!("{}, {}, {}", username, email, organization);
@@ -110,7 +108,6 @@ pub fn release_task(_data: web::Json<json_objs::ReleaseTaskObj>) -> HttpResponse
 
     // Set llimit timer
 
-
     HttpResponse::Ok().json(result_obj)
 }
 
@@ -118,9 +115,8 @@ pub fn check_task(_data: web::Json<json_objs::CheckTaskObj>) -> HttpResponse {
     let result_obj = json_objs::TaskViewObj {
         code: true,
         err_message: "".to_string(),
-        task_status: "".to_string()
+        task_status: "".to_string(),
     };
-
 
     HttpResponse::Ok().json(result_obj)
 }
@@ -131,7 +127,6 @@ pub fn receive_task(_data: web::Json<json_objs::ReceiveTaskObj>) -> HttpResponse
         err_message: "".to_string(),
     };
 
-
     HttpResponse::Ok().json(result_obj)
 }
 
@@ -140,7 +135,6 @@ pub fn submit_task(_data: web::Json<json_objs::SubmitTaskObj>) -> HttpResponse {
         code: true,
         err_message: "".to_string(),
     };
-
 
     HttpResponse::Ok().json(result_obj)
 }
@@ -153,7 +147,6 @@ pub fn create_group(_data: web::Json<json_objs::CreateGroupObj>) -> HttpResponse
         err_message: "".to_string(),
     };
 
-
     HttpResponse::Ok().json(result_obj)
 }
 
@@ -162,7 +155,6 @@ pub fn join_group(_data: web::Json<json_objs::JoinGroupObj>) -> HttpResponse {
         code: true,
         err_message: "".to_string(),
     };
-
 
     HttpResponse::Ok().json(result_obj)
 }
@@ -173,7 +165,6 @@ pub fn add_friend(_data: web::Json<json_objs::AddFriendObj>) -> HttpResponse {
         err_message: "".to_string(),
     };
 
-
     HttpResponse::Ok().json(result_obj)
 }
 
@@ -183,9 +174,8 @@ pub fn check_credit(_data: web::Json<json_objs::CheckCreditObj>) -> HttpResponse
     let result_obj = json_objs::CreditScoreObj {
         code: true,
         err_message: "".to_string(),
-        credit_score: 0
+        credit_score: 0,
     };
-
 
     HttpResponse::Ok().json(result_obj)
 }
@@ -196,7 +186,6 @@ pub fn recharge(_data: web::Json<json_objs::RechargeObj>) -> HttpResponse {
         err_message: "".to_string(),
     };
 
-
     HttpResponse::Ok().json(result_obj)
 }
 
@@ -205,7 +194,6 @@ pub fn withdraw(_data: web::Json<json_objs::WithdrawObj>) -> HttpResponse {
         code: true,
         err_message: "".to_string(),
     };
-
 
     HttpResponse::Ok().json(result_obj)
 }
