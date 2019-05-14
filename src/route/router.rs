@@ -25,7 +25,14 @@ pub fn logup(_data: web::Json<json_objs::LogupObj>) -> HttpResponse {
     if _data.logup_mode {
         return controller::logup_student(_data);
     } else {
-        controller::logup_cow(&_data.userid, &_data.email, &_data.organization)
+        controller::logup_cow(
+            &_data.username,
+            &_data.userid,
+            &_data.phone,
+            &_data.email,
+            &_data.infos,
+            &_data.organization,
+        )
     }
 }
 

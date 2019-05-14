@@ -7,10 +7,13 @@ use serde_derive::{Deserialize, Serialize};
 // Logup Parse Json Struct
 #[derive(Debug, Serialize, Deserialize)]
 pub struct LogupObj {
+    pub username: String,
     pub userid: String,
     pub wechat_ok: bool,
     pub logup_mode: bool,
     pub email: String,
+    pub phone: String,
+    pub infos: String,
     pub organization: String,
 }
 
