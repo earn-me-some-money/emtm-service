@@ -12,7 +12,7 @@ use crate::control::json_objs;
 use emtm_db::controller::{
     school_controller_zh::SchoolControllerZh, user_controller::UserController, Controller,
 };
-use emtm_db::models::users::{Cow, Student, UserId};
+use emtm_db::models::users::{Cow, Student, UserId, User};
 
 // Basic Function Methods
 
@@ -224,32 +224,32 @@ pub fn logup_student(data: web::Json<json_objs::StuLogupObj>) -> HttpResponse {
     HttpResponse::Ok().json(result_obj)
 }
 
-pub fn login_cow(userid: &str) -> HttpResponse {
-    let result_obj = json_objs::OriginObj {
+pub fn login(userid: &str, mode: bool) -> HttpResponse {
+    let mut result_obj = json_objs::OriginObj {
         code: true,
         err_message: "".to_string(),
     };
 
+    // Init DB Control
+    let db_control = Controller::new();
+
     // Check user registered or not
-
-    // Pass checking
-
-    println!("{}", userid);
-
-    HttpResponse::Ok().json(result_obj)
-}
-
-pub fn login_student(userid: &str) -> HttpResponse {
-    let result_obj = json_objs::OriginObj {
-        code: true,
-        err_message: "".to_string(),
+    let login_user_id : UserId = UserId::WechatId(userid);
+    let login_enable = match db_control.get_user_from_identifier(login_user_id) {
+        Some(_x) => {
+            match _x {
+                User::Cow(_cow) => !mode,
+                User::Student(_stu) => mode,
+            }
+        }
+        None => false
     };
 
-    println!("{}", userid);
-
-    // Check user registered or not
-
     // Pass checking
+    if !login_enable {
+        result_obj.code = false;
+        result_obj.err_message = "Login Fail! Taret User Not Registered!".to_string();
+    }
 
     HttpResponse::Ok().json(result_obj)
 }

@@ -58,9 +58,9 @@ pub fn login(data: web::Json<json_objs::LoginObj>) -> HttpResponse {
     }
 
     if data.login_mode {
-        return controller::login_student(&data.userid);
+        return controller::login(&data.userid, true);
     } else {
-        controller::login_student(&data.userid)
+        controller::login(&data.userid, false)
     }
 }
 
