@@ -16,7 +16,7 @@ use emtm_db::controller::{
     user_controller::UserController, Controller,
 };
 // Model Schemas
-use emtm_db::models::missions::{Mission, MissionType};
+use emtm_db::models::missions::{Mission, MissionType, PartState, Participant};
 use emtm_db::models::users::{Cow, Student, User, UserId};
 
 const SUPPORT_TASK_KINDS: i8 = 3;
@@ -281,7 +281,7 @@ pub fn release_task(data: web::Json<json_objs::ReleaseTaskObj>) -> HttpResponse 
     // Error Checking -- User Existence
     if database_user_id == -1 {
         result_obj.code = false;
-        result_obj.err_message = "Error! Cannot find target user's database-id!".to_string();
+        result_obj.err_message = "Error! Cannot find target user in database!".to_string();
         return HttpResponse::Ok().json(result_obj);
     }
 
@@ -357,7 +357,7 @@ pub fn release_task(data: web::Json<json_objs::ReleaseTaskObj>) -> HttpResponse 
 }
 
 pub fn check_task(_data: web::Json<json_objs::CheckTaskObj>) -> HttpResponse {
-    let mut result_obj = json_objs::TaskViewObj {
+    let result_obj = json_objs::TaskViewObj {
         code: true,
         err_message: "".to_string(),
         task_status: "".to_string(),
@@ -366,11 +366,96 @@ pub fn check_task(_data: web::Json<json_objs::CheckTaskObj>) -> HttpResponse {
     HttpResponse::Ok().json(result_obj)
 }
 
-pub fn receive_task(_data: web::Json<json_objs::ReceiveTaskObj>) -> HttpResponse {
-    let result_obj = json_objs::OriginObj {
+pub fn receive_task(data: web::Json<json_objs::ReceiveTaskObj>) -> HttpResponse {
+    let mut result_obj = json_objs::OriginObj {
         code: true,
         err_message: "".to_string(),
     };
+
+    // Init DB Control
+    let db_control = Controller::new();
+
+    // Find student database-id by wechat-id
+    let wechat_user_id: UserId = UserId::WechatId(&data.userid);
+    let database_user_id = match db_control.get_user_from_identifier(wechat_user_id) {
+        Some(User::Cow(_cow)) => -1,
+        Some(User::Student(stu)) => stu.uid,
+        None => -1,
+    };
+
+    if database_user_id == -1 {
+        result_obj.code = false;
+        result_obj.err_message = "Error! Cannot find target student in database!".to_string();
+        return HttpResponse::Ok().json(result_obj);
+    }
+
+    // Check mission participant duplication
+    let wechat_releaser_id: UserId = UserId::WechatId(&data.target_userid);
+    let target_releaser_id = match db_control.get_user_from_identifier(wechat_releaser_id) {
+        Some(User::Cow(cow)) => cow.uid,
+        Some(User::Student(stu)) => stu.uid,
+        None => -1,
+    };
+
+    let missions_collection = match data.receive_mode {
+        false => db_control.get_cow_missions(target_releaser_id),
+        true => db_control.get_student_missions(target_releaser_id),
+    };
+
+    let mut task_mid = -1;
+    for task in missions_collection.iter() {
+        if task.name == data.target_task {
+            task_mid = task.mid;
+        }
+    }
+
+    if task_mid != -1 {
+        // Check duplication
+        let participants = db_control.get_mission_participants(task_mid);
+        for person in participants.iter() {
+            if person.student_uid == database_user_id {
+                result_obj.code = false;
+                result_obj.err_message = "Error! Task Participant Duplication!".to_string();
+                return HttpResponse::Ok().json(result_obj);
+            }
+        }
+        // Check student condition satisify
+
+        // Check task exceed max_participants or not
+        let mut find_mission = false;
+        match db_control.get_mission_from_mid(task_mid) {
+            Some(x) => {
+                find_mission = true;
+                result_obj.code = x.max_participants > (participants.len() as i32);
+            }
+            None => {
+                result_obj.code = false;
+                result_obj.err_message = "Error! Target Mission Not Exist!".to_string();
+            }
+        };
+
+        if find_mission && !result_obj.code {
+            result_obj.err_message = "Error! Target Task Exceed Max Participants Size!".to_string();
+        }
+
+        // Pass Checking, store participant into db
+        if result_obj.code {
+            let new_part_user = vec![Participant {
+                student_uid: database_user_id,
+                state: PartState::from_val(0),
+            }];
+
+            if let Err(err) = db_control.add_participants(task_mid, &new_part_user) {
+                result_obj.code = false;
+                result_obj.err_message = format!("{}", err);
+            }
+        }
+    } else {
+        result_obj.code = false;
+        result_obj.err_message =
+            "Error! Cannot match the mission name with target releaser!".to_string();
+        return HttpResponse::Ok().json(result_obj);
+    }
 
     HttpResponse::Ok().json(result_obj)
 }
