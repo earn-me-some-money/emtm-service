@@ -280,6 +280,7 @@ pub fn release_task(data: web::Json<json_objs::ReleaseTaskObj>) -> HttpResponse 
 
     // Error Checking -- User Existence
     if database_user_id == -1 {
+        result_obj.code = false;
         result_obj.err_message = "Error! Cannot find target user's database-id!".to_string();
         return HttpResponse::Ok().json(result_obj);
     }
@@ -324,6 +325,8 @@ pub fn release_task(data: web::Json<json_objs::ReleaseTaskObj>) -> HttpResponse 
         result_obj.err_message = ["Error!", error_types[error_index]].join(" ").to_string();
         return HttpResponse::Ok().json(result_obj);
     } else {
+        // According to release mode, read task_request
+
         // Pass all checking, store into db
         let mission = Mission {
             mid: 0,
@@ -332,7 +335,7 @@ pub fn release_task(data: web::Json<json_objs::ReleaseTaskObj>) -> HttpResponse 
             risk: data.task_risk,
             name: data.task_name.clone(),
             mission_type: MissionType::from_val(data.task_mode),
-            content: "".to_string(),
+            content: data.task_intro.clone(),
             post_time: (Local::now()).naive_local(),
             deadline: parse_str_to_naive_date_time(&data.task_time_limit),
             participants: vec![],
@@ -354,7 +357,7 @@ pub fn release_task(data: web::Json<json_objs::ReleaseTaskObj>) -> HttpResponse 
 }
 
 pub fn check_task(_data: web::Json<json_objs::CheckTaskObj>) -> HttpResponse {
-    let result_obj = json_objs::TaskViewObj {
+    let mut result_obj = json_objs::TaskViewObj {
         code: true,
         err_message: "".to_string(),
         task_status: "".to_string(),
