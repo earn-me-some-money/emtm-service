@@ -43,11 +43,27 @@ pub struct LoginObj {
     pub login_mode: bool,
 }
 
+// Task request Json Struct
+#[derive(Debug, Serialize, Deserialize)]
+pub struct TaskRequestObj {
+    pub grade: i32,
+    pub major: String,
+    pub task_exper: i32,
+    pub credit_score: i32,
+    pub max_participants: i32,
+}
+
 // Release task Parse Json Struct
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ReleaseTaskObj {
     pub userid: String,
     pub release_mode: bool,
+    pub task_name: String,
+    pub task_mode: i8,
+    pub task_request: TaskRequestObj,
+    pub task_pay: i32,
+    pub task_risk: i32,
+    pub task_time_limit: String,
 }
 
 // Check task Parse Json Struct

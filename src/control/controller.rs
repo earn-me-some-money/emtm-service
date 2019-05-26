@@ -1,18 +1,25 @@
 /*
 * Emtm-Controller Modules
 */
+extern crate chrono;
 extern crate emtm_db;
 extern crate json;
 extern crate regex;
 
 use actix_web::{web, HttpResponse};
+use chrono::{Local, NaiveDateTime};
 use regex::Regex;
 
 use crate::control::json_objs;
 use emtm_db::controller::{
-    school_controller_zh::SchoolControllerZh, user_controller::UserController, Controller,
+    mission_controller::MissionController, school_controller_zh::SchoolControllerZh,
+    user_controller::UserController, Controller,
 };
-use emtm_db::models::users::{Cow, Student, UserId, User};
+// Model Schemas
+use emtm_db::models::missions::{Mission, MissionType};
+use emtm_db::models::users::{Cow, Student, User, UserId};
+
+const SUPPORT_TASK_KINDS: i8 = 3;
 
 // Basic Function Methods
 
@@ -234,15 +241,13 @@ pub fn login(userid: &str, mode: bool) -> HttpResponse {
     let db_control = Controller::new();
 
     // Check user registered or not
-    let login_user_id : UserId = UserId::WechatId(userid);
+    let login_user_id: UserId = UserId::WechatId(userid);
     let login_enable = match db_control.get_user_from_identifier(login_user_id) {
-        Some(_x) => {
-            match _x {
-                User::Cow(_cow) => !mode,
-                User::Student(_stu) => mode,
-            }
-        }
-        None => false
+        Some(_x) => match _x {
+            User::Cow(_cow) => !mode,
+            User::Student(_stu) => mode,
+        },
+        None => false,
     };
 
     // Pass checking
@@ -256,17 +261,94 @@ pub fn login(userid: &str, mode: bool) -> HttpResponse {
 
 // Task Manage Function Methods
 
-pub fn release_task(_data: web::Json<json_objs::ReleaseTaskObj>) -> HttpResponse {
-    let result_obj = json_objs::OriginObj {
+pub fn release_task(data: web::Json<json_objs::ReleaseTaskObj>) -> HttpResponse {
+    let mut result_obj = json_objs::OriginObj {
         code: true,
         err_message: "".to_string(),
     };
 
+    // Init DB Control
+    let db_control = Controller::new();
+
+    // Get current user's database-user-id
+    let wechat_user_id: UserId = UserId::WechatId(&data.userid);
+    let database_user_id = match db_control.get_user_from_identifier(wechat_user_id) {
+        Some(User::Cow(cow)) => cow.uid,
+        Some(User::Student(stu)) => stu.uid,
+        None => -1,
+    };
+
+    // Error Checking -- User Existence
+    if database_user_id == -1 {
+        result_obj.err_message = "Error! Cannot find target user's database-id!".to_string();
+        return HttpResponse::Ok().json(result_obj);
+    }
+
+    // Define Task_Release error message
+    let error_types = [
+        "Task Name Duplication",
+        "Task Mode Invalid",
+        "Task Pay Can not be Negative",
+        "Task Time-Limit Invalid",
+    ];
+
+    let mut error_index = 4;
+    let exist_posted_tasks = match data.release_mode {
+        false => db_control.get_cow_missions(database_user_id),
+        true => db_control.get_student_missions(database_user_id),
+    };
     // Check task name duplication
+    for task in exist_posted_tasks.iter() {
+        if task.name == data.task_name {
+            error_index = 0;
+        }
+    }
 
-    // Check task mode
+    // Check task mode valid
+    if data.task_mode >= SUPPORT_TASK_KINDS || data.task_mode < 0 {
+        error_index = 1;
+    }
 
-    // Set llimit timer
+    // Check payment positive
+    if data.task_pay <= 0 {
+        error_index = 2;
+    }
+
+    // Check timelimit valid -- cannot before current time
+    if !time_limit_valid(&data.task_time_limit) {
+        error_index = 3;
+    }
+
+    if error_index < 4 {
+        result_obj.code = false;
+        result_obj.err_message = ["Error!", error_types[error_index]].join(" ").to_string();
+        return HttpResponse::Ok().json(result_obj);
+    } else {
+        // Pass all checking, store into db
+        let mission = Mission {
+            mid: 0,
+            cow_uid: database_user_id,
+            bounty: data.task_pay,
+            risk: data.task_risk,
+            name: data.task_name.clone(),
+            mission_type: MissionType::from_val(data.task_mode),
+            content: "".to_string(),
+            post_time: (Local::now()).naive_local(),
+            deadline: parse_str_to_naive_date_time(&data.task_time_limit),
+            participants: vec![],
+            max_participants: data.task_request.max_participants,
+        };
+
+        if let Err(err) = db_control.add_mission(&mission) {
+            result_obj.code = false;
+            result_obj.err_message = format!("{}", err);
+        }
+    }
+
+    if result_obj.code {
+        // Set limit timer
+
+    }
 
     HttpResponse::Ok().json(result_obj)
 }
@@ -376,4 +458,27 @@ fn phone_format(phone: &str) -> bool {
         Some(_x) => true,
         None => false,
     }
+}
+
+fn time_limit_valid(timestamp: &str) -> bool {
+    let current_time = (Local::now()).naive_local();
+
+    let task_limit_time = NaiveDateTime::parse_from_str(timestamp, "%Y-%m-%d:%H-%M");
+
+    // Check error
+    let result = match task_limit_time {
+        Ok(stamp) => stamp > current_time,
+        Err(_) => false,
+    };
+
+    result
+}
+
+fn parse_str_to_naive_date_time(timestamp: &str) -> NaiveDateTime {
+    let result = match NaiveDateTime::parse_from_str(timestamp, "%Y-%m-%d:%H-%M") {
+        Ok(stamp) => stamp,
+        Err(_) => (Local::now()).naive_local(),
+    };
+
+    result
 }
