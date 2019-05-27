@@ -152,12 +152,20 @@ pub struct OriginObj {
     pub err_message: String,
 }
 
+// Student Finish Struct
+#[derive(Debug, Serialize, Deserialize)]
+pub struct StuTaskStatusObj {
+    pub student_userid: String,
+    pub is_finish: bool,
+}
+
 // View Task Status Struct
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TaskViewObj {
     pub code: bool,
     pub err_message: String,
-    pub task_status: String,
+    pub task_state: String,
+    pub task_status: Vec<StuTaskStatusObj>,
 }
 
 // Credit Score Return Json Struct

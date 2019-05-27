@@ -7,7 +7,7 @@ echo ""
 echo "Test-Case 2: Student-User Release Task: "
 curl http://localhost:8088/release_task\
  -H "Content-Type:application/json"\
- -d '{"userid":"wechat12307", "release_mode":true, "task_name":"Pick Me Up", "task_intro":"Test", "task_mode":1, "task_request":{"grade":-1, "major":"", "task_exper":-1, "credit_score":-1, "max_participants":-1}, "task_pay":10, "task_risk":5, "task_time_limit":"2019-05-27:22-00"}'
+ -d '{"userid":"wechat12307", "release_mode":true, "task_name":"Pick Me Up", "task_intro":"Test", "task_mode":1, "task_request":{"grade":-1, "major":"", "task_exper":-1, "credit_score":-1, "max_participants":5}, "task_pay":10, "task_risk":5, "task_time_limit":"2019-05-27:22-00"}'
 echo ""
 
 

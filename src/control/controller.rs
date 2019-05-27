@@ -359,12 +359,99 @@ pub fn release_task(data: web::Json<json_objs::ReleaseTaskObj>) -> HttpResponse 
     HttpResponse::Ok().json(result_obj)
 }
 
-pub fn check_task(_data: web::Json<json_objs::CheckTaskObj>) -> HttpResponse {
-    let result_obj = json_objs::TaskViewObj {
-        code: true,
+pub fn check_task(data: web::Json<json_objs::CheckTaskObj>) -> HttpResponse {
+    let mut result_obj = json_objs::TaskViewObj {
+        code: false,
         err_message: "".to_string(),
-        task_status: "".to_string(),
+        task_state: "Error Mission State".to_string(),
+        task_status: vec![],
     };
+
+    // Init db-control
+    let db_control = Controller::new();
+
+    // Get target user's database-id
+    let wechat_user_id: UserId = UserId::WechatId(&data.userid);
+    let database_user_id = match db_control.get_user_from_identifier(wechat_user_id) {
+        Some(User::Cow(cow)) => cow.uid,
+        Some(User::Student(stu)) => stu.uid,
+        None => -1,
+    };
+
+    // Handle error
+    if database_user_id == -1 {
+        result_obj.err_message = "Error! Can not find target user in database!".to_string();
+        return HttpResponse::Ok().json(result_obj);
+    }
+
+    // Get target mission's mid
+    let missions_collection = db_control.get_poster_missions(database_user_id);
+
+    let mut task_mid = -1;
+    for task in missions_collection.iter() {
+        if task.name == data.task_name {
+            task_mid = task.mid;
+        }
+    }
+
+    // Handle error
+    if task_mid == -1 {
+        result_obj.err_message = "Error! You haven't release mission with target name!".to_string();
+        return HttpResponse::Ok().json(result_obj);
+    }
+
+    // Check target mission time state
+    let mut database_mission_error = false;
+    let mut over_time = false;
+    match db_control.get_mission_from_mid(task_mid) {
+        Some(mission) => over_time = mission.deadline < (Local::now()).naive_local(),
+        None => {
+            database_mission_error = true;
+        }
+    };
+
+    // Handle error
+    if database_mission_error {
+        result_obj.err_message = "DataBase Error! Can not reach target mission infos!".to_string();
+        return HttpResponse::Ok().json(result_obj);
+    } else {
+        if over_time {
+            result_obj.task_state = "Mission Is Over".to_string();
+        } else {
+            result_obj.task_state = "Mission In Progress".to_string();
+        }
+    }
+
+    // Find participant's finish state
+    let participants = db_control.get_mission_participants(task_mid);
+    for person in participants.iter() {
+        // Find person's wechat-id by their database-id
+        let database_person_id: UserId = UserId::Uid(person.student_uid);
+        let wechat_person_id = match db_control.get_user_from_identifier(database_person_id) {
+            Some(User::Student(stu)) => stu.wechat_id,
+            Some(User::Cow(_)) => "".to_string(),
+            None => "".to_string(),
+        };
+
+        // Handle Error
+        if wechat_person_id == "".to_string() {
+            result_obj.err_message =
+                "DataBase Error! Can not reach mission's participants infos!".to_string();
+            result_obj.task_state = "Error Mission State".to_string();
+            return HttpResponse::Ok().json(result_obj);
+        }
+
+        // Push into result
+        let is_finished = person.state == 1;
+        let part_status = json_objs::StuTaskStatusObj {
+            student_userid: wechat_person_id.to_string(),
+            is_finish: is_finished,
+        };
+        result_obj.task_status.push(part_status);
+    }
+
+    // Finish, Set Response Valid
+    result_obj.code = true;
 
     HttpResponse::Ok().json(result_obj)
 }
