@@ -3,12 +3,15 @@
 */
 use actix_web::{web, HttpRequest, HttpResponse};
 
-use crate::control::controller;
+use crate::control::group_control;
 use crate::control::json_objs;
+use crate::control::log_control;
+use crate::control::main_control;
+use crate::control::task_control;
 
 // Common APIs
 pub fn index(_req: HttpRequest) -> HttpResponse {
-    controller::index()
+    main_control::index()
 }
 
 pub fn cow_logup(data: web::Json<json_objs::CowLogupObj>) -> HttpResponse {
@@ -22,7 +25,7 @@ pub fn cow_logup(data: web::Json<json_objs::CowLogupObj>) -> HttpResponse {
         return HttpResponse::Ok().json(wechat_fail);
     }
 
-    controller::logup_cow(
+    log_control::logup_cow(
         &data.username,
         &data.userid,
         &data.phone,
@@ -43,7 +46,7 @@ pub fn stu_logup(data: web::Json<json_objs::StuLogupObj>) -> HttpResponse {
         return HttpResponse::Ok().json(wechat_fail);
     }
 
-    controller::logup_student(data)
+    log_control::logup_student(data)
 }
 
 pub fn login(data: web::Json<json_objs::LoginObj>) -> HttpResponse {
@@ -58,53 +61,53 @@ pub fn login(data: web::Json<json_objs::LoginObj>) -> HttpResponse {
     }
 
     if data.login_mode {
-        return controller::login(&data.userid, true);
+        return log_control::login(&data.userid, true);
     } else {
-        controller::login(&data.userid, false)
+        log_control::login(&data.userid, false)
     }
 }
 
 pub fn release_task(data: web::Json<json_objs::ReleaseTaskObj>) -> HttpResponse {
-    controller::release_task(data)
+    task_control::release_task(data)
 }
 
 pub fn check_task(data: web::Json<json_objs::CheckTaskObj>) -> HttpResponse {
-    controller::check_task(data)
+    task_control::check_task(data)
 }
 
 pub fn recharge(data: web::Json<json_objs::RechargeObj>) -> HttpResponse {
-    controller::recharge(data)
+    main_control::recharge(data)
 }
 
 pub fn search_mission(data: web::Json<json_objs::MissionSearchObj>) -> HttpResponse {
-    controller::search_mission(data)
+    task_control::search_mission(data)
 }
 
 // Student Specific - APIs
 pub fn create_group(data: web::Json<json_objs::CreateGroupObj>) -> HttpResponse {
-    controller::create_group(data)
+    group_control::create_group(data)
 }
 
 pub fn join_group(data: web::Json<json_objs::JoinGroupObj>) -> HttpResponse {
-    controller::join_group(data)
+    group_control::join_group(data)
 }
 
 pub fn add_friend(data: web::Json<json_objs::AddFriendObj>) -> HttpResponse {
-    controller::add_friend(data)
+    group_control::add_friend(data)
 }
 
 pub fn receive_task(data: web::Json<json_objs::ReceiveTaskObj>) -> HttpResponse {
-    controller::receive_task(data)
+    task_control::receive_task(data)
 }
 
 pub fn submit_task(data: web::Json<json_objs::SubmitTaskObj>) -> HttpResponse {
-    controller::submit_task(data)
+    task_control::submit_task(data)
 }
 
 pub fn check_credit(data: web::Json<json_objs::CheckCreditObj>) -> HttpResponse {
-    controller::check_credit(data)
+    main_control::check_credit(data)
 }
 
 pub fn withdraw(data: web::Json<json_objs::WithdrawObj>) -> HttpResponse {
-    controller::withdraw(data)
+    main_control::withdraw(data)
 }
