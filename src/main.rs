@@ -25,6 +25,8 @@ fn main() -> std::io::Result<()> {
             .service(web::resource("/release_task").route(web::post().to(router::release_task)))
             .service(web::resource("/check_task").route(web::post().to(router::check_task)))
             .service(web::resource("/recharge").route(web::post().to(router::recharge)))
+            // Mission Search
+            .service(web::resource("/search_mission").route(web::post().to(router::search_mission)))
             // Student Specific API Routers
             .service(web::resource("/create_group").route(web::post().to(router::create_group)))
             .service(web::resource("/join_group").route(web::post().to(router::join_group)))
@@ -33,7 +35,7 @@ fn main() -> std::io::Result<()> {
             .service(web::resource("/submit_task").route(web::post().to(router::submit_task)))
             .service(web::resource("/withdraw").route(web::post().to(router::withdraw)))
     })
-    .bind("localhost:8080")?
+    .bind("localhost:8088")?
     .workers(num_cpus::get())
     .run()
 }

@@ -18,6 +18,7 @@ use emtm_db::controller::{
 // Model Schemas
 use emtm_db::models::missions::{Mission, MissionType, PartState, Participant};
 use emtm_db::models::users::{Cow, Student, User, UserId};
+use emtm_db::search;
 
 const SUPPORT_TASK_KINDS: i8 = 3;
 
@@ -291,13 +292,11 @@ pub fn release_task(data: web::Json<json_objs::ReleaseTaskObj>) -> HttpResponse 
         "Task Mode Invalid",
         "Task Pay Can not be Negative",
         "Task Time-Limit Invalid",
+        "Task Max-Participants Number Should be Positive",
     ];
 
-    let mut error_index = 4;
-    let exist_posted_tasks = match data.release_mode {
-        false => db_control.get_cow_missions(database_user_id),
-        true => db_control.get_student_missions(database_user_id),
-    };
+    let mut error_index = 5;
+    let exist_posted_tasks = db_control.get_poster_missions(database_user_id);
     // Check task name duplication
     for task in exist_posted_tasks.iter() {
         if task.name == data.task_name {
@@ -320,7 +319,11 @@ pub fn release_task(data: web::Json<json_objs::ReleaseTaskObj>) -> HttpResponse 
         error_index = 3;
     }
 
-    if error_index < 4 {
+    if data.task_request.max_participants <= 0 {
+        error_index = 4;
+    }
+
+    if error_index < 5 {
         result_obj.code = false;
         result_obj.err_message = ["Error!", error_types[error_index]].join(" ").to_string();
         return HttpResponse::Ok().json(result_obj);
@@ -330,7 +333,7 @@ pub fn release_task(data: web::Json<json_objs::ReleaseTaskObj>) -> HttpResponse 
         // Pass all checking, store into db
         let mission = Mission {
             mid: 0,
-            cow_uid: database_user_id,
+            poster_uid: database_user_id,
             bounty: data.task_pay,
             risk: data.task_risk,
             name: data.task_name.clone(),
@@ -397,10 +400,7 @@ pub fn receive_task(data: web::Json<json_objs::ReceiveTaskObj>) -> HttpResponse 
         None => -1,
     };
 
-    let missions_collection = match data.receive_mode {
-        false => db_control.get_cow_missions(target_releaser_id),
-        true => db_control.get_student_missions(target_releaser_id),
-    };
+    let missions_collection = db_control.get_poster_missions(target_releaser_id);
 
     let mut task_mid = -1;
     for task in missions_collection.iter() {
@@ -455,6 +455,68 @@ pub fn receive_task(data: web::Json<json_objs::ReceiveTaskObj>) -> HttpResponse 
         result_obj.err_message =
             "Error! Cannot match the mission name with target releaser!".to_string();
         return HttpResponse::Ok().json(result_obj);
+    }
+
+    HttpResponse::Ok().json(result_obj)
+}
+
+pub fn search_mission(data: web::Json<json_objs::MissionSearchObj>) -> HttpResponse {
+    let mut result_obj = json_objs::SearchResultObj {
+        code: true,
+        err_message: "".to_string(),
+        search_result: vec![],
+    };
+
+    let db_control = Controller::new();
+    // Search with database-searcher
+    let search_result = search::query_mission(&data.keyword);
+
+    let result_vector = match search_result {
+        Ok(result) => result,
+        Err(_) => vec![],
+    };
+
+    // Check search error or not
+    if result_vector.len() == 0 {
+        result_obj.code = false;
+        result_obj.err_message = "Error! Cannot match any mission with search keyword!".to_string();
+        return HttpResponse::Ok().json(result_obj);
+    }
+
+    // Parse result vector
+    for ele in result_vector.iter() {
+        // Search mission with element's mid
+        match db_control.get_mission_from_mid(ele.0) {
+            Some(the_mission) => {
+                // Find poster wechat id
+                let poster_id: UserId = UserId::Uid(the_mission.poster_uid);
+                let poster_wechatid = match db_control.get_user_from_identifier(poster_id) {
+                    Some(User::Cow(cow)) => cow.wechat_id,
+                    Some(User::Student(stu)) => stu.wechat_id,
+                    None => "".to_string(),
+                };
+
+                // Check wechat-id successfully get
+                if poster_wechatid.len() == 0 {
+                    result_obj.code = false;
+                    result_obj.err_message =
+                        "Error! Cannot get target mission-poster's wechat id!".to_string();
+                    return HttpResponse::Ok().json(result_obj);
+                }
+
+                // Push new search result into response
+                let new_search_result = json_objs::SearchElementObj {
+                    mid: ele.0,
+                    name: the_mission.name,
+                    content: the_mission.content,
+                    poster_userid: poster_wechatid,
+                    time_limit: the_mission.deadline.to_string(),
+                    score: ele.1,
+                };
+                result_obj.search_result.push(new_search_result);
+            }
+            None => (),
+        };
     }
 
     HttpResponse::Ok().json(result_obj)

@@ -135,6 +135,12 @@ pub struct WithdrawObj {
     pub withdraw_amount: String,
 }
 
+// Mission Search Struct
+#[derive(Debug, Serialize, Deserialize)]
+pub struct MissionSearchObj {
+    pub keyword: String,
+}
+
 /*
 * Part Two. Response Json Struct
 */
@@ -160,4 +166,21 @@ pub struct CreditScoreObj {
     pub code: bool,
     pub err_message: String,
     pub credit_score: i64,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct SearchElementObj {
+    pub mid: i32,
+    pub name: String,
+    pub content: String,
+    pub poster_userid: String,
+    pub time_limit: String,
+    pub score: f32,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct SearchResultObj {
+    pub code: bool,
+    pub err_message: String,
+    pub search_result: Vec<SearchElementObj>,
 }

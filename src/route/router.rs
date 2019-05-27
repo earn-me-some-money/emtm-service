@@ -76,6 +76,10 @@ pub fn recharge(data: web::Json<json_objs::RechargeObj>) -> HttpResponse {
     controller::recharge(data)
 }
 
+pub fn search_mission(data: web::Json<json_objs::MissionSearchObj>) -> HttpResponse {
+    controller::search_mission(data)
+}
+
 // Student Specific - APIs
 pub fn create_group(data: web::Json<json_objs::CreateGroupObj>) -> HttpResponse {
     controller::create_group(data)

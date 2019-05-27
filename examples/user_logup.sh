@@ -1,11 +1,11 @@
 echo "Test-Case 1: Cow-User Logup: "
-curl http://localhost:8080/cow_logup\
+curl http://localhost:8088/cow_logup\
  -H "Content-Type:application/json"\
  -d '{"username":"SDCS-Yard", "userid":"wechat12306", "wechat_ok":true, "logup_mode":false, "email":"1377278218@qq.com", "phone":"13432769342", "infos":"A New Comer", "organization":"SYSU-SDCS"}'
 echo " "
 
 echo "Test-Case 2: Student-User Logup: "
-curl http://localhost:8080/student_logup\
+curl http://localhost:8088/student_logup\
  -H "Content-Type:application/json"\
  -d '{"username":"XiaoMIng", "userid":"wechat12307", "wechat_ok":true, "logup_mode":true, "email":"1377278216@qq.com", "phone":"13432769341", "infos":"A student", "school_name":"中山大学", "student_id":"16340001", "major":"CS", "year":3}'
 
