@@ -103,6 +103,10 @@ pub fn release_task(data: web::Json<json_objs::ReleaseTaskObj>) -> HttpResponse 
             deadline: main_control::parse_str_to_naive_date_time(&data.task_time_limit),
             participants: vec![],
             max_participants: data.task_request.max_participants,
+            min_grade: None,
+            max_grade: None,
+            school: None,
+            min_finished: None,
         };
 
         if let Err(err) = db_control.add_mission(&mission) {
