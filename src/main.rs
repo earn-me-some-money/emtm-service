@@ -25,6 +25,7 @@ fn main() -> std::io::Result<()> {
             .service(web::resource("/release_task").route(web::post().to(router::release_task)))
             .service(web::resource("/check_task").route(web::post().to(router::check_task)))
             .service(web::resource("/recharge").route(web::post().to(router::recharge)))
+            .service(web::resource("/user_verify").route(web::post().to(router::user_verify)))
             // Mission Search
             .service(web::resource("/search_mission").route(web::post().to(router::search_mission)))
             // Student Specific API Routers

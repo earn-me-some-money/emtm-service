@@ -1,5 +1,7 @@
 [package]
 name = "emtm-web"
+[package]
+name = "emtm"
 version = "0.1.0"
 authors = ["Miguel Chan <vvchan@outlook.com>"]
 edition = "2018"
@@ -7,7 +9,8 @@ edition = "2018"
 [dependencies]
 futures = "0.1.26"
 dotenv = "0.10"
-actix-web = "1.0.0"
+actix-web = "1.0.0-beta.3"
+actix-multipart = "*"
 num_cpus = "0.2"
 log = "0.4.6"
 env_logger = "0.6.1"
@@ -22,3 +25,4 @@ regex = "*"
 chrono = "0.4.6"
 
 emtm_db = { git = "https://github.com/earn-me-some-money/emtm-db.git" }
+emtm-verify = { git = "https://github.com/earn-me-some-money/emtm-verify.git" }

@@ -1,7 +1,9 @@
 /*
 * Router Mount APIs
 */
+use std::cell::Cell;
 use actix_web::{web, HttpRequest, HttpResponse};
+use actix_multipart::{Field, Multipart, MultipartError};
 
 use crate::control::group_control;
 use crate::control::json_objs;
@@ -110,4 +112,8 @@ pub fn check_credit(data: web::Json<json_objs::CheckCreditObj>) -> HttpResponse 
 
 pub fn withdraw(data: web::Json<json_objs::WithdrawObj>) -> HttpResponse {
     main_control::withdraw(data)
+}
+
+pub fn user_verify(data: Multipart, counter: web::Data<Cell<usize>>) -> HttpResponse {
+    main_control::verify(data, counter)
 }

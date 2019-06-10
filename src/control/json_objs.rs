@@ -141,6 +141,15 @@ pub struct MissionSearchObj {
     pub keyword: String,
 }
 
+// Verify User Struct
+#[derive(Debug, Serialize, Deserialize)]
+pub struct UserVerifyObj {
+    pub image_data: String,
+    pub verify_mode: bool,
+    pub user_id: String,
+    pub organization: String
+}
+
 /*
 * Part Two. Response Json Struct
 */

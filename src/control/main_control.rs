@@ -5,8 +5,11 @@ extern crate chrono;
 extern crate json;
 extern crate regex;
 
+use std::cell::Cell;
 use actix_web::{web, HttpResponse};
+use actix_multipart::{Field, Multipart, MultipartError};
 use chrono::{Local, NaiveDateTime};
+use emtm_verify::{Verifier};
 use regex::Regex;
 
 use crate::control::json_objs;
@@ -48,6 +51,30 @@ pub fn withdraw(_data: web::Json<json_objs::WithdrawObj>) -> HttpResponse {
         code: true,
         err_message: "".to_string(),
     };
+
+    HttpResponse::Ok().json(result_obj)
+}
+
+pub fn verify(data: Multipart, counter: web::Data<Cell<usize>>) -> HttpResponse {
+    let mut result_obj = json_objs::OriginObj {
+        code: true,
+        err_message: "".to_string(),
+    };
+
+    /*
+    let verifier = Verifier::new();
+
+    let verify_res = verifier.verify(&data.image_data, &data.user_id, Some(&data.organization));
+    let verify_result = match verify_res {
+        Ok(_) => "",
+        Err(err) => err 
+    };
+
+    if verify_result.len() > 0 {
+        result_obj.code = false;
+        result_obj.err_message = verify_result;
+    }
+    */
 
     HttpResponse::Ok().json(result_obj)
 }
