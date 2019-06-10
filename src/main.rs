@@ -1,9 +1,8 @@
-extern crate emtm;
 extern crate env_logger;
 extern crate json;
 
 use actix_web::{middleware, web, App, HttpServer};
-use emtm::route::router;
+use emtm_web::route::router;
 
 extern crate num_cpus;
 
