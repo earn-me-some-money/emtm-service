@@ -35,7 +35,7 @@ fn main() -> std::io::Result<()> {
             .service(web::resource("/submit_task").route(web::post().to(router::submit_task)))
             .service(web::resource("/withdraw").route(web::post().to(router::withdraw)))
     })
-    .bind("localhost:8088")?
+    .bind("0.0.0.0:6789")?
     .workers(num_cpus::get())
     .run()
 }
