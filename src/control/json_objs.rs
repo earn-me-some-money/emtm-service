@@ -46,10 +46,10 @@ pub struct LoginObj {
 // Task request Json Struct
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TaskRequestObj {
-    pub grade: i8,
-    pub major: String,
-    pub task_exper: i32,
-    pub credit_score: i32,
+    pub grade: Option<i8>,
+    pub major: Option<String>,
+    pub task_exper: Option<i32>,
+    pub credit_score: Option<i32>,
     pub max_participants: i32,
 }
 

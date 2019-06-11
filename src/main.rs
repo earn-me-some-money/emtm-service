@@ -1,14 +1,12 @@
-extern crate env_logger;
-extern crate json;
-
 use actix_web::{middleware, web, App, HttpServer};
 use emtm_web::route::router;
 
-extern crate num_cpus;
-
 fn main() -> std::io::Result<()> {
+    pretty_env_logger::try_init_timed_custom_env("EMTM_LOG").unwrap();
+
     std::env::set_var("RUST_LOG", "actix_server=info,actix_web=info");
-    env_logger::init();
+
+    emtm_db::search::init();
 
     HttpServer::new(|| {
         App::new()
@@ -35,7 +33,7 @@ fn main() -> std::io::Result<()> {
             .service(web::resource("/submit_task").route(web::post().to(router::submit_task)))
             .service(web::resource("/withdraw").route(web::post().to(router::withdraw)))
     })
-    .bind("0.0.0.0:6789")?
+    .bind("127.0.0.1:6789")?
     .workers(num_cpus::get())
     .run()
 }
