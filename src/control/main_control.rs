@@ -1,14 +1,10 @@
 /*
 * Emtm-Controller Modules -- Main Control
 */
-extern crate chrono;
-extern crate json;
-extern crate regex;
 
-use std::cell::Cell;
 use std::time::Duration;
 
-use actix_multipart::{Field, Multipart, MultipartError};
+
 use actix_web::client::PayloadError;
 use actix_web::{
     client::{Client, SendRequestError},
@@ -17,11 +13,10 @@ use actix_web::{
 };
 use chrono::{Local, NaiveDateTime};
 use emtm_verify::Verifier;
-use futures::stream::Stream;
-use futures::{future, future::lazy, future::result, Future};
+use futures::{future, Future};
 use log::*;
 use regex::Regex;
-use serde::*;
+
 
 use crate::control::json_objs;
 
@@ -93,7 +88,7 @@ pub fn verify(
 
     let verifier = Verifier::new();
 
-    let id = match data.verify_mode {
+    let _id = match data.verify_mode {
         true => Some(&data.user_id),
         false => None,
     };
@@ -223,7 +218,7 @@ pub fn api_request(params: &[&str]) -> Box<Future<Item = String, Error = APIErro
         .map(|(name, param)| [*name, *param].join("="))
         .collect::<Vec<String>>()
         .join("&");
-    let mut target_url = [TX_URL, &url_encode].join("?");
+    let target_url = [TX_URL, &url_encode].join("?");
 
     let ret = client
         .get(target_url)
