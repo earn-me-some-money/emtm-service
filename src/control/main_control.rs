@@ -17,7 +17,7 @@ use actix_web::{
 };
 use chrono::{Local, NaiveDateTime};
 use emtm_verify::Verifier;
-use futures::{future::lazy, Future, future::result};
+use futures::{future::lazy, future::result, Future};
 use log::*;
 use regex::Regex;
 use serde::*;
@@ -117,56 +117,59 @@ pub fn verify(_data: Multipart, counter: web::Data<Cell<usize>>) -> HttpResponse
 // Get User's wechat openid
 pub fn get_wechatid(
     data: web::Json<json_objs::GetWechatIdObj>,
-) -> Box<Future<Item = HttpResponse, Error=actix_web::Error>> {
+) -> Box<Future<Item = HttpResponse, Error = actix_web::Error>> {
     let mut result_obj = json_objs::WechatIdResultObj {
-        openid: "".to_string(),
+        openid: "None".to_string(),
         errcode: 0,
-        errmsg: "".to_string(),
+        errmsg: "None".to_string(),
     };
 
     let empty_form = json_objs::ResponseForm {
-        openid: "Error".to_string(),
-        errcode: 0,
-        errmsg: "Error".to_string(),
-        session_key: "Error".to_string(),
-        unionid: "Error".to_string(),
+        openid: None,
+        errcode: None,
+        errmsg: None,
+        unionid: None,
+        session_key: None,
     };
 
-    let params = json_objs::RequestForm {
-        appid: data.appid.clone(),
-        secret: data.secret.clone(),
-        js_code: data.code.clone(),
-        grant_type: "authorization_code".to_string(),
-    };
+    let params = vec![
+        data.appid.clone(),
+        data.secret.clone(),
+        data.code.clone(),
+        "authorization_code".to_string(),
+    ];
 
-    let ret = api_request(&params)
-        .then(|response| {
-            if let Err(err) = response {
-                return Ok(HttpResponse::BadGateway().json(json_objs::WechatIdResultObj {
+    let ret = api_request(&params).then(|response| {
+        if let Err(err) = response {
+            return Ok(
+                HttpResponse::BadGateway().json(json_objs::WechatIdResultObj {
                     openid: "".to_string(),
                     errcode: -1,
                     errmsg: format!("{:?}", err),
-                }));
+                }),
+            );
+        }
+        let response = response.unwrap();
+        let mut api_response_correct = true;
+        let api_result: json_objs::ResponseForm = match serde_json::from_str(&response) {
+            Ok(r) => r,
+            Err(e) => {
+                api_response_correct = false;
+                empty_form
             }
-            let response = response.unwrap();
-            let mut api_response_correct = true;
-            let api_result: json_objs::ResponseForm = match serde_json::from_str(&response) {
-                Ok(r) => r,
-                Err(e) => {
-                    debug!("Failed to parse json: {}", e);
-                    api_response_correct = false;
-                    empty_form
-                }
-            };
+        };
 
-            if api_response_correct {
-                result_obj.errcode = api_result.errcode;
-                result_obj.openid = api_result.openid;
-                result_obj.errmsg = api_result.errmsg;
-            }
+        if api_response_correct {
+            result_obj.errcode = api_result.errcode.unwrap_or(0);
+            result_obj.openid = api_result.openid.unwrap_or("None".to_string());
+            result_obj.errmsg = api_result.errmsg.unwrap_or("None".to_string());
+        } else {
+            result_obj.errcode = api_result.errcode.unwrap_or(0);
+            result_obj.errmsg = api_result.errmsg.unwrap_or("None".to_string());
+        }
 
-            Ok(HttpResponse::Ok().json(result_obj))
-        });
+        Ok(HttpResponse::Ok().json(result_obj))
+    });
     Box::new(ret)
 }
 
@@ -213,17 +216,24 @@ pub fn parse_str_to_naive_date_time(timestamp: &str) -> NaiveDateTime {
     result
 }
 
-pub fn api_request(
-    params: &json_objs::RequestForm,
-) -> Box<Future<Item = String, Error = APIError>> {
+pub fn api_request(params: &Vec<String>) -> Box<Future<Item = String, Error = APIError>> {
     let mut client_builder = Client::build();
     client_builder = client_builder.timeout(Duration::from_secs(20));
 
     let client = client_builder.finish();
 
+    let mut target_url = TX_URL.to_string();
+    let names = vec!["appid=", "&secret=", "&js_code=", "&grant_type="];
+
+    target_url = target_url + "?";
+    for index in 0..4 {
+        target_url = target_url + names[index];
+        target_url = target_url + &params[index];
+    }
+
     let ret = client
-        .get(TX_URL)
-        .send_form(params)
+        .get(target_url)
+        .send()
         .map_err(|error| {
             warn!("Error {:?} when requesting tx getting wechatid api!", error);
             APIError::RequestError(error)

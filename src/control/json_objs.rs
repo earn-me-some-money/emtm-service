@@ -229,9 +229,9 @@ pub struct RequestForm {
 // Response Form
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ResponseForm {
-    pub openid: String,
-    pub errcode: i32,
-    pub errmsg: String,
-    pub session_key: String,
-    pub unionid: String,
+    pub openid: Option<String>,
+    pub errcode: Option<i32>,
+    pub errmsg: Option<String>,
+    pub session_key: Option<String>,
+    pub unionid: Option<String>,
 }
