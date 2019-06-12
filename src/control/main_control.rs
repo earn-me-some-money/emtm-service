@@ -5,22 +5,21 @@ extern crate chrono;
 extern crate json;
 extern crate regex;
 
+use std::cell::Cell;
+use std::time::Duration;
+
 use actix_multipart::{Field, Multipart, MultipartError};
-use actix_rt::System;
+use actix_web::client::PayloadError;
 use actix_web::{
     client::{Client, SendRequestError},
     http::StatusCode,
     web, HttpResponse,
 };
 use chrono::{Local, NaiveDateTime};
-use futures::{future::lazy, Future};
-
 use emtm_verify::Verifier;
-use regex::Regex;
-use std::cell::Cell;
-use std::time::Duration;
-
+use futures::{future::lazy, Future, future::result};
 use log::*;
+use regex::Regex;
 use serde::*;
 
 use crate::control::json_objs;
@@ -29,8 +28,8 @@ static TX_URL: &str = "https://api.weixin.qq.com/sns/jscode2session";
 
 #[derive(Debug)]
 pub enum APIError {
-    APIResponseError(SendRequestError),
-    ResponseError(String),
+    RequestError(SendRequestError),
+    ServerResponseError(PayloadError),
     ServerStatusError(String),
 }
 
@@ -81,6 +80,17 @@ pub fn verify(_data: Multipart, counter: web::Data<Cell<usize>>) -> HttpResponse
         err_message: "".to_string(),
     };
 
+    // data
+    //     .map_err(error::ErrorInternalServerError)
+    //     .map(|field| save_file(field).into_stream())
+    //     .flatten()
+    //     .collect()
+    //     .map(|sizes| HttpResponse::Ok().json(sizes))
+    //     .map_err(|e| {
+    //         println!("failed: {}", e);
+    //         e
+    //     })
+
     /*
     let verifier = Verifier::new();
 
@@ -105,7 +115,9 @@ pub fn verify(_data: Multipart, counter: web::Data<Cell<usize>>) -> HttpResponse
 }
 
 // Get User's wechat openid
-pub fn get_wechatid(data: web::Json<json_objs::GetWechatIdObj>) -> HttpResponse {
+pub fn get_wechatid(
+    data: web::Json<json_objs::GetWechatIdObj>,
+) -> Box<Future<Item = HttpResponse, Error=actix_web::Error>> {
     let mut result_obj = json_objs::WechatIdResultObj {
         openid: "".to_string(),
         errcode: 0,
@@ -127,25 +139,35 @@ pub fn get_wechatid(data: web::Json<json_objs::GetWechatIdObj>) -> HttpResponse 
         grant_type: "authorization_code".to_string(),
     };
 
-    let api_response = api_request(&params).unwrap();
+    let ret = api_request(&params)
+        .then(|response| {
+            if let Err(err) = response {
+                return Ok(HttpResponse::BadGateway().json(json_objs::WechatIdResultObj {
+                    openid: "".to_string(),
+                    errcode: -1,
+                    errmsg: format!("{:?}", err),
+                }));
+            }
+            let response = response.unwrap();
+            let mut api_response_correct = true;
+            let api_result: json_objs::ResponseForm = match serde_json::from_str(&response) {
+                Ok(r) => r,
+                Err(e) => {
+                    debug!("Failed to parse json: {}", e);
+                    api_response_correct = false;
+                    empty_form
+                }
+            };
 
-    let mut api_response_correct = true;
-    let api_result: json_objs::ResponseForm = match serde_json::from_str(&api_response) {
-        Ok(r) => r,
-        Err(e) => {
-            debug!("Failed to parse json: {}", e);
-            api_response_correct = false;
-            empty_form
-        }
-    };
+            if api_response_correct {
+                result_obj.errcode = api_result.errcode;
+                result_obj.openid = api_result.openid;
+                result_obj.errmsg = api_result.errmsg;
+            }
 
-    if api_response_correct {
-        result_obj.errcode = api_result.errcode;
-        result_obj.openid = api_result.openid;
-        result_obj.errmsg = api_result.errmsg;
-    }
-
-    HttpResponse::Ok().json(result_obj)
+            Ok(HttpResponse::Ok().json(result_obj))
+        });
+    Box::new(ret)
 }
 
 // Tools Function Methods
@@ -191,33 +213,33 @@ pub fn parse_str_to_naive_date_time(timestamp: &str) -> NaiveDateTime {
     result
 }
 
-pub fn api_request(params: &json_objs::RequestForm) -> Result<String, APIError> {
-    System::new("get_wechatid_api").block_on(lazy(|| {
-        // Invoke Tencent Get Id API
-        let mut client_builder = Client::build();
-        client_builder = client_builder.timeout(Duration::from_secs(20));
+pub fn api_request(
+    params: &json_objs::RequestForm,
+) -> Box<Future<Item = String, Error = APIError>> {
+    let mut client_builder = Client::build();
+    client_builder = client_builder.timeout(Duration::from_secs(20));
 
-        let client = client_builder.finish();
+    let client = client_builder.finish();
 
-        client
-            .get(TX_URL)
-            .set_header("Content-Type", "text/plain")
-            .send_form(params)
-            .map_err(|error| {
-                warn!("Error {:?} when requesting tx getting wechatid api!", error);
-                APIError::APIResponseError(error)
-            })
-            .and_then(|mut response| {
-                debug!("Response header: {:?}", response);
-                match response.status() {
-                    StatusCode::OK => match response.body().wait() {
-                        Ok(item) => Ok(String::from_utf8_lossy(&item[..]).into_owned()),
-                        Err(_) => Err(APIError::ResponseError("Response Body Error!".to_string())),
-                    },
-                    _ => Err(APIError::ServerStatusError(
-                        "Response Status Code Error!".to_string(),
-                    )),
-                }
-            })
-    }))
+    let ret = client
+        .get(TX_URL)
+        .send_form(params)
+        .map_err(|error| {
+            warn!("Error {:?} when requesting tx getting wechatid api!", error);
+            APIError::RequestError(error)
+        })
+        .and_then(|mut response| {
+            debug!("Response header: {:?}", response);
+            match response.status() {
+                StatusCode::OK => match response.body().wait() {
+                    Ok(item) => Ok(String::from_utf8_lossy(&item[..]).into_owned()),
+                    Err(err) => Err(APIError::ServerResponseError(err)),
+                },
+                _ => Err(APIError::ServerStatusError(format!(
+                    "Tencent Server Response code: {}",
+                    response.status().as_u16()
+                ))),
+            }
+        });
+    Box::new(ret)
 }

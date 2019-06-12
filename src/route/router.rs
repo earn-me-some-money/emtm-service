@@ -118,6 +118,9 @@ pub fn user_verify(data: Multipart, counter: web::Data<Cell<usize>>) -> HttpResp
     main_control::verify(data, counter)
 }
 
-pub fn get_wechatid(data: web::Json<json_objs::GetWechatIdObj>) -> HttpResponse {
+use futures::Future;
+pub fn get_wechatid(
+    data: web::Json<json_objs::GetWechatIdObj>,
+) -> Box<Future<Item = HttpResponse, Error = actix_web::Error>> {
     main_control::get_wechatid(data)
 }
