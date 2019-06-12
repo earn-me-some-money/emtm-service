@@ -1,9 +1,9 @@
 /*
 * Router Mount APIs
 */
-use std::cell::Cell;
-use actix_web::{web, HttpRequest, HttpResponse};
 use actix_multipart::{Field, Multipart, MultipartError};
+use actix_web::{web, HttpRequest, HttpResponse};
+use std::cell::Cell;
 
 use crate::control::group_control;
 use crate::control::json_objs;
@@ -116,4 +116,8 @@ pub fn withdraw(data: web::Json<json_objs::WithdrawObj>) -> HttpResponse {
 
 pub fn user_verify(data: Multipart, counter: web::Data<Cell<usize>>) -> HttpResponse {
     main_control::verify(data, counter)
+}
+
+pub fn get_wechatid(data: web::Json<json_objs::GetWechatIdObj>) -> HttpResponse {
+    main_control::get_wechatid(data)
 }

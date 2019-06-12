@@ -5,14 +5,34 @@ extern crate chrono;
 extern crate json;
 extern crate regex;
 
-use std::cell::Cell;
-use actix_web::{web, HttpResponse};
 use actix_multipart::{Field, Multipart, MultipartError};
+use actix_rt::System;
+use actix_web::{
+    client::{Client, SendRequestError},
+    http::StatusCode,
+    web, HttpResponse,
+};
 use chrono::{Local, NaiveDateTime};
-use emtm_verify::{Verifier};
+use futures::{future::lazy, Future};
+
+use emtm_verify::Verifier;
 use regex::Regex;
+use std::cell::Cell;
+use std::time::Duration;
+
+use log::*;
+use serde::*;
 
 use crate::control::json_objs;
+
+static TX_URL: &str = "https://api.weixin.qq.com/sns/jscode2session";
+
+#[derive(Debug)]
+pub enum APIError {
+    APIResponseError(SendRequestError),
+    ResponseError(String),
+    ServerStatusError(String),
+}
 
 // Basic Function Methods
 
@@ -55,8 +75,8 @@ pub fn withdraw(_data: web::Json<json_objs::WithdrawObj>) -> HttpResponse {
     HttpResponse::Ok().json(result_obj)
 }
 
-pub fn verify(data: Multipart, counter: web::Data<Cell<usize>>) -> HttpResponse {
-    let mut result_obj = json_objs::OriginObj {
+pub fn verify(_data: Multipart, counter: web::Data<Cell<usize>>) -> HttpResponse {
+    let result_obj = json_objs::OriginObj {
         code: true,
         err_message: "".to_string(),
     };
@@ -64,10 +84,15 @@ pub fn verify(data: Multipart, counter: web::Data<Cell<usize>>) -> HttpResponse 
     /*
     let verifier = Verifier::new();
 
+    // Process with multipart datas
+    data.map_err(error::ErrorInternalServerError).map(|field| {
+
+    });
+
     let verify_res = verifier.verify(&data.image_data, &data.user_id, Some(&data.organization));
     let verify_result = match verify_res {
         Ok(_) => "",
-        Err(err) => err 
+        Err(err) => err
     };
 
     if verify_result.len() > 0 {
@@ -75,6 +100,50 @@ pub fn verify(data: Multipart, counter: web::Data<Cell<usize>>) -> HttpResponse 
         result_obj.err_message = verify_result;
     }
     */
+
+    HttpResponse::Ok().json(result_obj)
+}
+
+// Get User's wechat openid
+pub fn get_wechatid(data: web::Json<json_objs::GetWechatIdObj>) -> HttpResponse {
+    let mut result_obj = json_objs::WechatIdResultObj {
+        openid: "".to_string(),
+        errcode: 0,
+        errmsg: "".to_string(),
+    };
+
+    let empty_form = json_objs::ResponseForm {
+        openid: "Error".to_string(),
+        errcode: 0,
+        errmsg: "Error".to_string(),
+        session_key: "Error".to_string(),
+        unionid: "Error".to_string(),
+    };
+
+    let params = json_objs::RequestForm {
+        appid: data.appid.clone(),
+        secret: data.secret.clone(),
+        js_code: data.code.clone(),
+        grant_type: "authorization_code".to_string(),
+    };
+
+    let api_response = api_request(&params).unwrap();
+
+    let mut api_response_correct = true;
+    let api_result: json_objs::ResponseForm = match serde_json::from_str(&api_response) {
+        Ok(r) => r,
+        Err(e) => {
+            debug!("Failed to parse json: {}", e);
+            api_response_correct = false;
+            empty_form
+        }
+    };
+
+    if api_response_correct {
+        result_obj.errcode = api_result.errcode;
+        result_obj.openid = api_result.openid;
+        result_obj.errmsg = api_result.errmsg;
+    }
 
     HttpResponse::Ok().json(result_obj)
 }
@@ -120,4 +189,35 @@ pub fn parse_str_to_naive_date_time(timestamp: &str) -> NaiveDateTime {
     };
 
     result
+}
+
+pub fn api_request(params: &json_objs::RequestForm) -> Result<String, APIError> {
+    System::new("get_wechatid_api").block_on(lazy(|| {
+        // Invoke Tencent Get Id API
+        let mut client_builder = Client::build();
+        client_builder = client_builder.timeout(Duration::from_secs(20));
+
+        let client = client_builder.finish();
+
+        client
+            .get(TX_URL)
+            .set_header("Content-Type", "text/plain")
+            .send_form(params)
+            .map_err(|error| {
+                warn!("Error {:?} when requesting tx getting wechatid api!", error);
+                APIError::APIResponseError(error)
+            })
+            .and_then(|mut response| {
+                debug!("Response header: {:?}", response);
+                match response.status() {
+                    StatusCode::OK => match response.body().wait() {
+                        Ok(item) => Ok(String::from_utf8_lossy(&item[..]).into_owned()),
+                        Err(_) => Err(APIError::ResponseError("Response Body Error!".to_string())),
+                    },
+                    _ => Err(APIError::ServerStatusError(
+                        "Response Status Code Error!".to_string(),
+                    )),
+                }
+            })
+    }))
 }

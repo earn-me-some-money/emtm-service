@@ -147,7 +147,15 @@ pub struct UserVerifyObj {
     pub image_data: String,
     pub verify_mode: bool,
     pub user_id: String,
-    pub organization: String
+    pub organization: String,
+}
+
+// Get Wechat id Struct
+#[derive(Debug, Serialize, Deserialize)]
+pub struct GetWechatIdObj {
+    pub appid: String,
+    pub secret: String,
+    pub code: String,
 }
 
 /*
@@ -200,4 +208,30 @@ pub struct SearchResultObj {
     pub code: bool,
     pub err_message: String,
     pub search_result: Vec<SearchElementObj>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct WechatIdResultObj {
+    pub openid: String,
+    pub errcode: i32,
+    pub errmsg: String,
+}
+
+// Request Form
+#[derive(Debug, Serialize, Deserialize)]
+pub struct RequestForm {
+    pub appid: String,
+    pub secret: String,
+    pub js_code: String,
+    pub grant_type: String,
+}
+
+// Response Form
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ResponseForm {
+    pub openid: String,
+    pub errcode: i32,
+    pub errmsg: String,
+    pub session_key: String,
+    pub unionid: String,
 }
