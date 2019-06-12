@@ -40,7 +40,6 @@ pub struct StuLogupObj {
 pub struct LoginObj {
     pub userid: String,
     pub wechat_ok: bool,
-    pub login_mode: bool,
 }
 
 // Task request Json Struct
@@ -72,7 +71,6 @@ pub struct ReleaseTaskObj {
 pub struct CheckTaskObj {
     pub userid: String,
     pub task_name: String,
-    pub check_mode: bool,
 }
 
 // Create group Parse Json Struct
@@ -101,7 +99,6 @@ pub struct AddFriendObj {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ReceiveTaskObj {
     pub userid: String,
-    pub receive_mode: bool,
     pub target_userid: String,
     pub target_task: String,
 }
@@ -110,7 +107,6 @@ pub struct ReceiveTaskObj {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SubmitTaskObj {
     pub userid: String,
-    pub submit_mode: bool,
     pub target_userid: String,
     pub target_task: String,
 }

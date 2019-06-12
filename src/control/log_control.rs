@@ -75,8 +75,6 @@ pub fn logup_cow(
         }
     }
 
-    // Do organization authenitication
-
     // Pass checking, do db-storing
     if logup_enable {
         // New Adding Cow Vector
@@ -87,7 +85,7 @@ pub fn logup_cow(
             personal_info: infos.to_string(),
             email: email.to_string(),
             username: username.to_string(),
-            verified: false,
+            verified: true,
             tokens: 0,
             company: organization.to_string(),
         }];
@@ -181,8 +179,6 @@ pub fn logup_student(data: web::Json<json_objs::StuLogupObj>) -> HttpResponse {
         }
     }
 
-    // Do student autehnitication
-
     // Pass checking, do db-stroing
     if logup_enable {
         // New Adding Cow Vector
@@ -193,7 +189,7 @@ pub fn logup_student(data: web::Json<json_objs::StuLogupObj>) -> HttpResponse {
             personal_info: data.infos.clone(),
             email: data.email.clone(),
             username: data.username.clone(),
-            verified: false,
+            verified: true,
             tokens: 0,
             school_id: school_id.clone(),
             student_id: data.student_id.clone(),
@@ -213,7 +209,7 @@ pub fn logup_student(data: web::Json<json_objs::StuLogupObj>) -> HttpResponse {
     HttpResponse::Ok().json(result_obj)
 }
 
-pub fn login(userid: &str, mode: bool) -> HttpResponse {
+pub fn login(userid: &str) -> HttpResponse {
     let mut result_obj = json_objs::OriginObj {
         code: true,
         err_message: "".to_string(),
@@ -226,8 +222,8 @@ pub fn login(userid: &str, mode: bool) -> HttpResponse {
     let login_user_id: UserId = UserId::WechatId(userid);
     let login_enable = match db_control.get_user_from_identifier(login_user_id) {
         Some(_x) => match _x {
-            User::Cow(_cow) => !mode,
-            User::Student(_stu) => mode,
+            User::Cow(_cow) => true,
+            User::Student(_stu) => true,
         },
         None => false,
     };

@@ -74,7 +74,7 @@ pub fn withdraw(_data: web::Json<json_objs::WithdrawObj>) -> HttpResponse {
     HttpResponse::Ok().json(result_obj)
 }
 
-pub fn verify(_data: Multipart, counter: web::Data<Cell<usize>>) -> HttpResponse {
+pub fn verify(_data: Multipart, _counter: web::Data<Cell<usize>>) -> HttpResponse {
     let result_obj = json_objs::OriginObj {
         code: true,
         err_message: "".to_string(),
@@ -153,7 +153,7 @@ pub fn get_wechatid(
         let mut api_response_correct = true;
         let api_result: json_objs::ResponseForm = match serde_json::from_str(&response) {
             Ok(r) => r,
-            Err(e) => {
+            Err(_e) => {
                 api_response_correct = false;
                 empty_form
             }

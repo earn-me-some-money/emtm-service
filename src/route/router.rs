@@ -19,7 +19,7 @@ pub fn index(_req: HttpRequest) -> HttpResponse {
 pub fn cow_logup(data: web::Json<json_objs::CowLogupObj>) -> HttpResponse {
     let wechat_fail = json_objs::OriginObj {
         code: false,
-        err_message: "Please make sure user pass the wechat authenitication!".to_string(),
+        err_message: "Please make sure user pass the User-Authenitication!".to_string(),
     };
 
     // Do WeChat-Authe Check
@@ -40,7 +40,7 @@ pub fn cow_logup(data: web::Json<json_objs::CowLogupObj>) -> HttpResponse {
 pub fn stu_logup(data: web::Json<json_objs::StuLogupObj>) -> HttpResponse {
     let wechat_fail = json_objs::OriginObj {
         code: false,
-        err_message: "Please make sure user pass the wechat authenitication!".to_string(),
+        err_message: "Please make sure user pass the User-Authenitication!".to_string(),
     };
 
     // Do WeChat-Authe Check
@@ -54,7 +54,7 @@ pub fn stu_logup(data: web::Json<json_objs::StuLogupObj>) -> HttpResponse {
 pub fn login(data: web::Json<json_objs::LoginObj>) -> HttpResponse {
     let wechat_fail = json_objs::OriginObj {
         code: false,
-        err_message: "Please make sure user pass the wechat authenitication!".to_string(),
+        err_message: "Please make sure user pass the Wechat-Authenitication!".to_string(),
     };
 
     // Do WeChat-Authe Check
@@ -62,11 +62,7 @@ pub fn login(data: web::Json<json_objs::LoginObj>) -> HttpResponse {
         return HttpResponse::Ok().json(wechat_fail);
     }
 
-    if data.login_mode {
-        return log_control::login(&data.userid, true);
-    } else {
-        log_control::login(&data.userid, false)
-    }
+    log_control::login(&data.userid)
 }
 
 pub fn release_task(data: web::Json<json_objs::ReleaseTaskObj>) -> HttpResponse {
