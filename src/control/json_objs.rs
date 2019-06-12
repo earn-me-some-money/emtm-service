@@ -231,3 +231,11 @@ pub struct ResponseForm {
     pub session_key: Option<String>,
     pub unionid: Option<String>,
 }
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct VerifyInfo {
+    pub image_data: String,
+    pub verify_mode: bool,
+    pub user_id: String,
+    pub organization: String,
+}

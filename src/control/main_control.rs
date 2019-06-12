@@ -17,7 +17,8 @@ use actix_web::{
 };
 use chrono::{Local, NaiveDateTime};
 use emtm_verify::Verifier;
-use futures::{future::lazy, future::result, Future};
+use futures::stream::Stream;
+use futures::{future, future::lazy, future::result, Future};
 use log::*;
 use regex::Regex;
 use serde::*;
@@ -74,44 +75,42 @@ pub fn withdraw(_data: web::Json<json_objs::WithdrawObj>) -> HttpResponse {
     HttpResponse::Ok().json(result_obj)
 }
 
-pub fn verify(_data: Multipart, _counter: web::Data<Cell<usize>>) -> HttpResponse {
-    let result_obj = json_objs::OriginObj {
-        code: true,
+pub fn verify(
+    data: web::Json<json_objs::VerifyInfo>,
+) -> Box<Future<Item = HttpResponse, Error = actix_web::Error>> {
+    let mut result_obj = json_objs::OriginObj {
+        code: false,
         err_message: "".to_string(),
     };
 
-    // data
-    //     .map_err(error::ErrorInternalServerError)
-    //     .map(|field| save_file(field).into_stream())
-    //     .flatten()
-    //     .collect()
-    //     .map(|sizes| HttpResponse::Ok().json(sizes))
-    //     .map_err(|e| {
-    //         println!("failed: {}", e);
-    //         e
-    //     })
-
-    /*
-    let verifier = Verifier::new();
-
-    // Process with multipart datas
-    data.map_err(error::ErrorInternalServerError).map(|field| {
-
-    });
-
-    let verify_res = verifier.verify(&data.image_data, &data.user_id, Some(&data.organization));
-    let verify_result = match verify_res {
-        Ok(_) => "",
-        Err(err) => err
+    let raw_data = match base64::decode(data.image_data.as_bytes()) {
+        Ok(raw) => raw,
+        Err(err) => {
+            result_obj.err_message = format!("Failed to decode image data: {:?}", err);
+            return Box::new(future::ok(HttpResponse::BadRequest().json(result_obj)));
+        }
     };
 
-    if verify_result.len() > 0 {
-        result_obj.code = false;
-        result_obj.err_message = verify_result;
-    }
-    */
+    let verifier = Verifier::new();
 
-    HttpResponse::Ok().json(result_obj)
+    let id = match data.verify_mode {
+        true => Some(&data.user_id),
+        false => None,
+    };
+
+    Box::new(
+        verifier
+            .verify(&raw_data, &data.organization, Some(&data.organization))
+            .then(|verify_result| {
+                if let Err(err) = verify_result {
+                    result_obj.err_message = format!("Verification failed: {:?}", err);
+                    future::ok(HttpResponse::BadRequest().json(result_obj))
+                } else {
+                    result_obj.code = true;
+                    future::ok(HttpResponse::Ok().json(result_obj))
+                }
+            }),
+    )
 }
 
 // Get User's wechat openid
@@ -132,12 +131,7 @@ pub fn get_wechatid(
         session_key: None,
     };
 
-    let params = vec![
-        data.appid.clone(),
-        data.secret.clone(),
-        data.code.clone(),
-        "authorization_code".to_string(),
-    ];
+    let params: [&str; 4] = [&data.appid, &data.secret, &data.code, "authorization_code"];
 
     let ret = api_request(&params).then(|response| {
         if let Err(err) = response {
@@ -216,20 +210,20 @@ pub fn parse_str_to_naive_date_time(timestamp: &str) -> NaiveDateTime {
     result
 }
 
-pub fn api_request(params: &Vec<String>) -> Box<Future<Item = String, Error = APIError>> {
+pub fn api_request(params: &[&str]) -> Box<Future<Item = String, Error = APIError>> {
     let mut client_builder = Client::build();
     client_builder = client_builder.timeout(Duration::from_secs(20));
 
     let client = client_builder.finish();
 
-    let mut target_url = TX_URL.to_string();
-    let names = vec!["appid=", "&secret=", "&js_code=", "&grant_type="];
-
-    target_url = target_url + "?";
-    for index in 0..4 {
-        target_url = target_url + names[index];
-        target_url = target_url + &params[index];
-    }
+    let names = vec!["appid", "secret", "js_code", "grant_type"];
+    let url_encode = names
+        .iter()
+        .zip(params)
+        .map(|(name, param)| [*name, *param].join("="))
+        .collect::<Vec<String>>()
+        .join("&");
+    let mut target_url = [TX_URL, &url_encode].join("?");
 
     let ret = client
         .get(target_url)

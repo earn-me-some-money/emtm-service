@@ -110,8 +110,10 @@ pub fn withdraw(data: web::Json<json_objs::WithdrawObj>) -> HttpResponse {
     main_control::withdraw(data)
 }
 
-pub fn user_verify(data: Multipart, counter: web::Data<Cell<usize>>) -> HttpResponse {
-    main_control::verify(data, counter)
+pub fn user_verify(
+    data: web::Json<json_objs::VerifyInfo>,
+) -> Box<Future<Item = HttpResponse, Error = actix_web::Error>> {
+    main_control::verify(data)
 }
 
 use futures::Future;

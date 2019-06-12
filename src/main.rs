@@ -2,6 +2,7 @@ use actix_web::{middleware, web, App, HttpServer};
 use emtm_web::route::router;
 
 fn main() -> std::io::Result<()> {
+    openssl_probe::init_ssl_cert_env_vars();
     pretty_env_logger::try_init_timed_custom_env("EMTM_LOG").unwrap();
 
     std::env::set_var("RUST_LOG", "actix_server=info,actix_web=info");
