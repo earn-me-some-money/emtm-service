@@ -4,7 +4,6 @@
 
 use std::time::Duration;
 
-
 use actix_web::client::PayloadError;
 use actix_web::{
     client::{Client, SendRequestError},
@@ -16,7 +15,6 @@ use emtm_verify::Verifier;
 use futures::{future, Future};
 use log::*;
 use regex::Regex;
-
 
 use crate::control::json_objs;
 

@@ -79,9 +79,12 @@ pub fn release_task(data: web::Json<json_objs::ReleaseTaskObj>) -> HttpResponse 
         error_index = 3;
     }
 
-    if data.task_request.max_participants <= 0 {
-        error_index = 4;
-    }
+    match data.task_request.max_participants {
+        Some(max_parts) if max_parts <= 0 => {
+            error_index = 4;
+        }
+        _ => (),
+    };
 
     if error_index < 5 {
         result_obj.code = false;
@@ -107,6 +110,8 @@ pub fn release_task(data: web::Json<json_objs::ReleaseTaskObj>) -> HttpResponse 
             max_grade: None,
             school: None,
             min_finished: None,
+            major: None,
+            min_credit: None,
         };
 
         if let Err(err) = db_control.add_mission(&mission) {
@@ -277,7 +282,10 @@ pub fn receive_task(data: web::Json<json_objs::ReceiveTaskObj>) -> HttpResponse 
         match db_control.get_mission_from_mid(task_mid) {
             Some(x) => {
                 find_mission = true;
-                result_obj.code = x.max_participants > (participants.len() as i32);
+                result_obj.code = match x.max_participants {
+                    Some(parts) => parts > (participants.len() as i32),
+                    None => true,
+                }
             }
             None => {
                 result_obj.code = false;

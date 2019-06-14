@@ -49,7 +49,7 @@ pub struct TaskRequestObj {
     pub major: Option<String>,
     pub task_exper: Option<i32>,
     pub credit_score: Option<i32>,
-    pub max_participants: i32,
+    pub max_participants: Option<i32>,
 }
 
 // Release task Parse Json Struct

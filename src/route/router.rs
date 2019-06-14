@@ -4,7 +4,6 @@
 
 use actix_web::{web, HttpRequest, HttpResponse};
 
-
 use crate::control::group_control;
 use crate::control::json_objs;
 use crate::control::log_control;
