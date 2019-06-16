@@ -45,9 +45,10 @@ pub struct LoginObj {
 // Task request Json Struct
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TaskRequestObj {
-    pub grade: Option<i8>,
+    pub min_grade: Option<i8>,
+    pub max_grade: Option<i8>,
     pub major: Option<String>,
-    pub task_exper: Option<i32>,
+    pub task_expe: Option<i32>,
     pub credit_score: Option<i32>,
     pub max_participants: Option<i32>,
 }
@@ -56,7 +57,6 @@ pub struct TaskRequestObj {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ReleaseTaskObj {
     pub userid: String,
-    pub release_mode: bool,
     pub task_name: String,
     pub task_intro: String,
     pub task_mode: i8,
@@ -66,11 +66,23 @@ pub struct ReleaseTaskObj {
     pub task_time_limit: String,
 }
 
-// Check task Parse Json Struct
+// Check tasks Parse Json Struct
+#[derive(Debug, Serialize, Deserialize)]
+pub struct TaskTypeObj {
+    pub task_type: i32,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct UserIdObj {
+    pub userid: String,
+}
+
+// Check Special Task Request
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CheckTaskObj {
     pub userid: String,
-    pub task_name: String,
+    pub poster_id: String,
+    pub task_mid: i32,
 }
 
 // Create group Parse Json Struct
@@ -154,6 +166,89 @@ pub struct GetWechatIdObj {
     pub code: String,
 }
 
+// Question Struct
+#[derive(Debug, Serialize, Deserialize)]
+pub struct QuestionObj {
+    pub order: i32,
+    pub q_type: i32,
+    pub content: String,
+    pub choices: Option<Vec<String>>,
+}
+
+// Transaction Struct
+#[derive(Debug, Serialize, Deserialize)]
+pub struct TransactionObj {
+    pub mid: i32,
+    pub t_type: String,
+    pub info: String,
+    pub loss: String,
+    pub address: String,
+}
+
+// Errand Struct
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ErrandObj {
+    pub mid: i32,
+    pub address: String,
+    pub phone_number: String,
+    pub pick_number: String,
+    pub info: String,
+}
+
+// Question Naire Mission Detail Struct
+#[derive(Debug, Serialize, Deserialize)]
+pub struct QuestionNaireObj {
+    pub mid: i32,
+    pub questions: Vec<QuestionObj>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct StuAnswerObj {
+    pub order: i32,
+    pub answer: Option<String>,
+    pub choices: Option<Vec<String>>,
+}
+
+// Student submit questionnaire Obj
+#[derive(Debug, Serialize, Deserialize)]
+pub struct SubmitQuestionNaireObj {
+    pub userid: String,
+    pub poster_id: String,
+    pub task_mid: i32,
+    pub answers: Vec<StuAnswerObj>,
+}
+
+// User Verify Input
+#[derive(Debug, Serialize, Deserialize)]
+pub struct VerifyInfo {
+    pub image_data: String,
+    pub verify_mode: bool,
+    pub user_id: String,
+    pub organization: String,
+}
+
+// Cow-User New Info Request
+#[derive(Debug, Serialize, Deserialize)]
+pub struct CowEditInfoObj {
+    pub userid: String,
+    pub new_email: String,
+    pub new_phone: String,
+    pub new_infos: String,
+}
+
+// Stu-User New Info Request
+#[derive(Debug, Serialize, Deserialize)]
+pub struct StuEditInfoObj {
+    pub userid: String,
+    pub new_email: String,
+    pub new_phone: String,
+    pub new_infos: String,
+    pub new_major: String,
+    pub new_year: i32,
+}
+
+// =================================== //
+
 /*
 * Part Two. Response Json Struct
 */
@@ -165,20 +260,20 @@ pub struct OriginObj {
     pub err_message: String,
 }
 
-// Student Finish Struct
+// Login Result Struct
 #[derive(Debug, Serialize, Deserialize)]
-pub struct StuTaskStatusObj {
-    pub student_userid: String,
-    pub is_finish: bool,
+pub struct LoginResultObj {
+    pub code: bool,
+    pub user_type: i32,
+    pub err_message: String,
 }
 
-// View Task Status Struct
+// Mission build Success Struct
 #[derive(Debug, Serialize, Deserialize)]
-pub struct TaskViewObj {
+pub struct MissionOkObj {
     pub code: bool,
     pub err_message: String,
-    pub task_state: String,
-    pub task_status: Vec<StuTaskStatusObj>,
+    pub mid: i32,
 }
 
 // Credit Score Return Json Struct
@@ -232,10 +327,125 @@ pub struct ResponseForm {
     pub unionid: Option<String>,
 }
 
+// Mission brief decription
 #[derive(Debug, Serialize, Deserialize)]
-pub struct VerifyInfo {
-    pub image_data: String,
-    pub verify_mode: bool,
-    pub user_id: String,
+pub struct TaskBriefObj {
+    pub mid: i32,
+    pub poster_id: String,
+    pub poster_name: String,
+    pub task_state: bool,
+    pub task_name: String,
+    pub task_intro: String,
+    pub task_mode: i32,
+    pub task_pay: i32,
+    pub task_time_limit: String,
+    // For user receive-task mode
+    pub user_finish_state: Option<bool>,
+}
+
+// Target mission description
+#[derive(Debug, Serialize, Deserialize)]
+pub struct GetTasksObj {
+    pub code: bool,
+    pub err_message: String,
+    pub tasks: Vec<TaskBriefObj>,
+}
+
+// Mission Accepter description
+#[derive(Debug, Serialize, Deserialize)]
+pub struct TaskAccepterObj {
+    pub accept_user_num: i32,
+    pub accept_user_names: Vec<String>,
+    pub accept_user_id: Vec<String>,
+}
+
+// Mission Finisher description
+#[derive(Debug, Serialize, Deserialize)]
+pub struct TaskFinisherObj {
+    pub finish_user_num: i32,
+    pub finish_user_names: Vec<String>,
+    pub finish_user_id: Vec<String>,
+}
+
+// Mission Detailed description
+#[derive(Debug, Serialize, Deserialize)]
+pub struct TaskDetailObj {
+    pub code: bool,
+    pub err_message: String,
+    // Brief description
+    pub mid: Option<i32>,
+    pub poster_id: Option<String>,
+    pub poster_name: Option<String>,
+    pub task_state: Option<bool>,
+    pub task_user_state: Option<bool>,
+    pub task_name: Option<String>,
+    pub task_intro: Option<String>,
+    pub task_mode: Option<i32>,
+    pub task_pay: Option<i32>,
+    pub task_time_limit: Option<String>,
+    // More infos
+    pub task_risk: Option<i32>,
+    pub task_request: Option<TaskRequestObj>,
+    // Accepter and Finisher list
+    pub accept_users: Option<TaskAccepterObj>,
+    pub finish_users: Option<TaskFinisherObj>,
+}
+
+// Questionnaire Answer Struct
+#[derive(Debug, Serialize, Deserialize)]
+pub struct AnswerObj {
+    pub order: i32,
+    pub q_type: i32,
+    pub content: String,
+    pub answer: Option<String>,
+    pub choices: Option<Vec<String>>,
+}
+
+// Questionnaire Whole Answers Struct
+#[derive(Debug, Serialize, Deserialize)]
+pub struct AllAnswerObj {
+    pub code: bool,
+    pub err_message: String,
+    pub answers: Vec<AnswerObj>,
+}
+
+// User Balance return
+#[derive(Debug, Serialize, Deserialize)]
+pub struct BalanceObj {
+    pub code: bool,
+    pub err_message: String,
+    pub balance: i32,
+}
+
+// Cow-User Info return
+#[derive(Debug, Serialize, Deserialize)]
+pub struct CowInfoObj {
+    pub code: bool,
+    pub err_message: String,
+
+    pub username: String,
+    pub email: String,
+    pub phone: String,
+    pub infos: String,
     pub organization: String,
+}
+
+// Student-User Info return
+#[derive(Debug, Serialize, Deserialize)]
+pub struct StuInfoObj {
+    pub code: bool,
+    pub err_message: String,
+
+    pub username: String,
+    pub email: String,
+    pub phone: String,
+    pub infos: String,
+    pub school_name: String,
+    pub student_id: String,
+    pub major: String,
+    pub year: i32,
+
+    pub credit: i32,
+    pub accepted: i32,
+    pub finished: i32,
 }

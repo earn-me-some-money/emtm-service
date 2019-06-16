@@ -160,6 +160,61 @@ pub fn get_wechatid(
     Box::new(ret)
 }
 
+pub fn get_cow_info(_data: web::Json<json_objs::UserIdObj>) -> HttpResponse {
+    let result_obj = json_objs::CowInfoObj {
+        code: true,
+        err_message: "".to_string(),
+
+        username: "".to_string(),
+        email: "".to_string(),
+        phone: "".to_string(),
+        infos: "".to_string(),
+        organization: "".to_string(),
+    };
+
+    HttpResponse::Ok().json(result_obj)
+}
+
+pub fn get_stu_info(_data: web::Json<json_objs::UserIdObj>) -> HttpResponse {
+    let result_obj = json_objs::StuInfoObj {
+        code: true,
+        err_message: "".to_string(),
+
+        username: "".to_string(),
+        email: "".to_string(),
+        phone: "".to_string(),
+        infos: "".to_string(),
+        school_name: "".to_string(),
+        student_id: "".to_string(),
+        major: "".to_string(),
+        year: 0,
+
+        credit: 0,
+        accepted: 0,
+        finished: 0,
+    };
+
+    HttpResponse::Ok().json(result_obj)
+}
+
+pub fn edit_cow_info(_data: web::Json<json_objs::CowEditInfoObj>) -> HttpResponse {
+    let result_obj = json_objs::OriginObj {
+        code: true,
+        err_message: "".to_string(),
+    };
+
+    HttpResponse::Ok().json(result_obj)
+}
+
+pub fn edit_stu_info(_data: web::Json<json_objs::StuEditInfoObj>) -> HttpResponse {
+    let result_obj = json_objs::OriginObj {
+        code: true,
+        err_message: "".to_string(),
+    };
+
+    HttpResponse::Ok().json(result_obj)
+}
+
 // Tools Function Methods
 pub fn email_format(email: &str) -> bool {
     let email_rg =

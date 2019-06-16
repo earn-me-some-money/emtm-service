@@ -68,8 +68,32 @@ pub fn release_task(data: web::Json<json_objs::ReleaseTaskObj>) -> HttpResponse 
     task_control::release_task(data)
 }
 
+pub fn release_task_question(data: web::Json<json_objs::QuestionNaireObj>) -> HttpResponse {
+    task_control::release_task_question(data)
+}
+
+pub fn release_task_transaction(data: web::Json<json_objs::TransactionObj>) -> HttpResponse {
+    task_control::release_task_transaction(data)
+}
+
+pub fn release_task_errand(data: web::Json<json_objs::ErrandObj>) -> HttpResponse {
+    task_control::release_task_errand(data)
+}
+
 pub fn check_task(data: web::Json<json_objs::CheckTaskObj>) -> HttpResponse {
     task_control::check_task(data)
+}
+
+pub fn check_task_self_receive(data: web::Json<json_objs::UserIdObj>) -> HttpResponse {
+    task_control::check_task_self_receive(data)
+}
+
+pub fn check_task_self_release(data: web::Json<json_objs::UserIdObj>) -> HttpResponse {
+    task_control::check_task_self_release(data)
+}
+
+pub fn check_question_naire(data: web::Json<json_objs::CheckTaskObj>) -> HttpResponse {
+    task_control::check_question_naire(data)
 }
 
 pub fn recharge(data: web::Json<json_objs::RechargeObj>) -> HttpResponse {
@@ -97,8 +121,12 @@ pub fn receive_task(data: web::Json<json_objs::ReceiveTaskObj>) -> HttpResponse 
     task_control::receive_task(data)
 }
 
-pub fn submit_task(data: web::Json<json_objs::SubmitTaskObj>) -> HttpResponse {
-    task_control::submit_task(data)
+pub fn submit_task_cow(data: web::Json<json_objs::CheckTaskObj>) -> HttpResponse {
+    task_control::submit_task_cow(data)
+}
+
+pub fn submit_task_stu(data: web::Json<json_objs::SubmitQuestionNaireObj>) -> HttpResponse {
+    task_control::submit_task_stu(data)
 }
 
 pub fn check_credit(data: web::Json<json_objs::CheckCreditObj>) -> HttpResponse {
@@ -120,4 +148,24 @@ pub fn get_wechatid(
     data: web::Json<json_objs::GetWechatIdObj>,
 ) -> Box<Future<Item = HttpResponse, Error = actix_web::Error>> {
     main_control::get_wechatid(data)
+}
+
+pub fn get_tasks(data: web::Json<json_objs::TaskTypeObj>) -> HttpResponse {
+    task_control::get_tasks(data)
+}
+
+pub fn get_cow_info(data: web::Json<json_objs::UserIdObj>) -> HttpResponse {
+    main_control::get_cow_info(data)
+}
+
+pub fn get_stu_info(data: web::Json<json_objs::UserIdObj>) -> HttpResponse {
+    main_control::get_stu_info(data)
+}
+
+pub fn edit_cow_info(data: web::Json<json_objs::CowEditInfoObj>) -> HttpResponse {
+    main_control::edit_cow_info(data)
+}
+
+pub fn edit_stu_info(data: web::Json<json_objs::StuEditInfoObj>) -> HttpResponse {
+    main_control::edit_stu_info(data)
 }

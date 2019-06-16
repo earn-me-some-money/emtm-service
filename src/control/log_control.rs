@@ -210,8 +210,9 @@ pub fn logup_student(data: web::Json<json_objs::StuLogupObj>) -> HttpResponse {
 }
 
 pub fn login(userid: &str) -> HttpResponse {
-    let mut result_obj = json_objs::OriginObj {
+    let mut result_obj = json_objs::LoginResultObj {
         code: true,
+        user_type: 2,
         err_message: "".to_string(),
     };
 
@@ -221,10 +222,13 @@ pub fn login(userid: &str) -> HttpResponse {
     // Check user registered or not
     let login_user_id: UserId = UserId::WechatId(userid);
     let login_enable = match db_control.get_user_from_identifier(login_user_id) {
-        Some(_x) => match _x {
-            User::Cow(_cow) => true,
-            User::Student(_stu) => true,
-        },
+        Some(_x) => {
+            match _x {
+                User::Cow(_cow) => result_obj.user_type = 0,
+                User::Student(_stu) => result_obj.user_type = 1,
+            };
+            true
+        }
         None => false,
     };
 
