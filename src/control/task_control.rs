@@ -12,6 +12,7 @@ use crate::control::json_objs;
 use crate::control::main_control;
 use emtm_db::controller::{
     mission_controller::MissionController, user_controller::UserController, Controller,
+    school_controller_zh::SchoolControllerZh
 };
 // Model Schemas
 use emtm_db::models::missions::{Mission, MissionType, PartState, Participant};
@@ -91,7 +92,8 @@ pub fn release_task(data: web::Json<json_objs::ReleaseTaskObj>) -> HttpResponse 
         result_obj.code = false;
         result_obj.err_message = ["Error!", error_types[error_index]].join(" ").to_string();
         return HttpResponse::Ok().json(result_obj);
-    } else {
+    } 
+    else {
         // Pass all checking, store into db
         let mission = Mission {
             mid: 0,
@@ -105,12 +107,15 @@ pub fn release_task(data: web::Json<json_objs::ReleaseTaskObj>) -> HttpResponse 
             deadline: main_control::parse_str_to_naive_date_time(&data.task_time_limit),
             participants: vec![],
             max_participants: data.task_request.max_participants,
-            min_grade: None,
-            max_grade: None,
-            school: None,
-            min_finished: None,
-            major: None,
-            min_credit: None,
+            min_grade: data.task_request.min_grade,
+            max_grade: data.task_request.max_grade,
+            school: match &data.task_request.school {
+                Some(x) => db_control.get_school_id(&x),
+                None => None
+            },
+            min_finished: data.task_request.task_expe,
+            major: data.task_request.major.clone(),
+            min_credit: data.task_request.credit_score,
         };
 
         if let Err(err) = db_control.add_mission(&mission) {
@@ -122,18 +127,23 @@ pub fn release_task(data: web::Json<json_objs::ReleaseTaskObj>) -> HttpResponse 
     if result_obj.code {
         // Set limit timer
 
-        // Get mission's mid
+
+        // Set current new mission's mid
+
 
     }
 
     HttpResponse::Ok().json(result_obj)
 }
 
+// ===================== Wait Emtm-DB Implementation ===================== //
+
 pub fn release_task_question(_data: web::Json<json_objs::QuestionNaireObj>) -> HttpResponse {
     let result_obj = json_objs::OriginObj {
         code: true,
         err_message: "".to_string(),
     };
+
 
     HttpResponse::Ok().json(result_obj)
 }
@@ -196,7 +206,7 @@ pub fn check_task(data: web::Json<json_objs::CheckTaskObj>) -> HttpResponse {
         return HttpResponse::Ok().json(result_obj);
     }
 
-    let wechat_poster_id: UserId = UserId::WechatId(&data.poster_id);
+    let wechat_poster_id: UserId = UserId::Uid(data.poster_id);
     let database_poster_id = match db_control.get_user_from_identifier(wechat_poster_id) {
         Some(User::Cow(cow)) => cow.uid,
         Some(User::Student(stu)) => stu.uid,
@@ -207,8 +217,9 @@ pub fn check_task(data: web::Json<json_objs::CheckTaskObj>) -> HttpResponse {
     if database_poster_id == -1 {
         result_obj.err_message = "Error! Can not find mission poster in database!".to_string();
         return HttpResponse::Ok().json(result_obj);
-    } else {
-        let wechat_poster_id_1: UserId = UserId::WechatId(&data.poster_id);
+    } 
+    else {
+        let wechat_poster_id_1: UserId = UserId::Uid(data.poster_id);
         let database_poster_name = match db_control.get_user_from_identifier(wechat_poster_id_1) {
             Some(User::Cow(cow)) => cow.username,
             Some(User::Student(stu)) => stu.username,
@@ -225,6 +236,18 @@ pub fn check_task(data: web::Json<json_objs::CheckTaskObj>) -> HttpResponse {
         if task.mid == data.task_mid {
             have_the_mission = true;
             // Set mission parameters
+            result_obj.mid = Some(task.mid);
+            result_obj.poster_id = Some(data.poster_id.clone());
+
+            result_obj.task_request = Some(json_objs::TaskRequestObj {
+                min_grade: task.min_grade,
+                max_grade: task.max_grade,
+                major: task.major.clone(),
+                school: db_control.get_school_name(task.school.unwrap_or(0)),
+                task_expe: task.min_finished,
+                credit_score: task.min_credit,
+                max_participants: task.max_participants
+            });
             result_obj.task_name = Some(task.name.clone());
             result_obj.task_intro = Some(task.content.clone());
             result_obj.task_mode = Some(task.mission_type.to_val().into());
@@ -265,24 +288,57 @@ pub fn check_task(data: web::Json<json_objs::CheckTaskObj>) -> HttpResponse {
 
     // Find participant's finish state
     let participants = db_control.get_mission_participants(data.task_mid);
+    let mut accept_users = json_objs::TaskAccepterObj {
+        accept_user_num: 0,
+        accept_user_names: vec![],
+        accept_user_id: vec![]
+    };
+    let mut finish_users = json_objs::TaskFinisherObj {
+        finish_user_num: 0,
+        finish_user_names: vec![],
+        finish_user_id: vec![]
+    };
+
     for person in participants.iter() {
         // Find person's wechat-id by their database-id
         let database_person_id: UserId = UserId::Uid(person.student_uid);
-        let wechat_person_id = match db_control.get_user_from_identifier(database_person_id) {
-            Some(User::Student(stu)) => stu.wechat_id,
-            Some(User::Cow(_)) => "".to_string(),
-            None => "".to_string(),
+        let participant_state = person.state;
+
+        let (person_id, person_name) = match db_control.get_user_from_identifier(database_person_id) {
+            Some(User::Student(stu)) => (stu.wechat_id, stu.username),
+            Some(User::Cow(_)) => ("".to_string(), "".to_string()),
+            None => ("".to_string(), "".to_string()),
         };
 
         // Handle Error
-        if wechat_person_id == "".to_string() {
+        if person_id == "".to_string() {
             result_obj.err_message =
                 "DataBase Error! Can not reach mission's participants infos!".to_string();
             return HttpResponse::Ok().json(result_obj);
         }
+        else {
+            accept_users.accept_user_num += 1;
+            accept_users.accept_user_names.push(person_name.clone());
+            accept_users.accept_user_id.push(person_id.clone());
+        }
 
-        // Return mission participants states
+        /*
+        pub enum PartState {
+            Accepted,
+            Finished,
+            Cancelled,
+        }
+        */
+        // If finish mission
+        if participant_state == 1 {
+            finish_users.finish_user_num += 1;
+            finish_users.finish_user_names.push(person_name.clone());
+            finish_users.finish_user_id.push(person_id.clone());
+        }
     }
+
+    result_obj.accept_users = Some(accept_users);
+    result_obj.finish_users = Some(finish_users);
 
     // Finish, Set Response Valid
     result_obj.code = true;
@@ -290,25 +346,122 @@ pub fn check_task(data: web::Json<json_objs::CheckTaskObj>) -> HttpResponse {
     HttpResponse::Ok().json(result_obj)
 }
 
-pub fn check_task_self_receive(_data: web::Json<json_objs::UserIdObj>) -> HttpResponse {
-    let result_obj = json_objs::GetTasksObj {
+pub fn check_task_self_receive(data: web::Json<json_objs::UserIdObj>) -> HttpResponse {
+    let mut result_obj = json_objs::GetTasksObj {
         code: true,
         err_message: "".to_string(),
         tasks: vec![],
     };
 
+    // Init db-control
+    let db_control = Controller::new();
+
+    // Get target user's database-id
+    let wechat_user_id: UserId = UserId::WechatId(&data.userid);
+    let database_user_id = match db_control.get_user_from_identifier(wechat_user_id) {
+        Some(User::Cow(_)) => -1,
+        Some(User::Student(stu)) => stu.uid,
+        None => -1
+    };
+
+    if database_user_id == -1 {
+        result_obj.code = false;
+        result_obj.err_message = "Target user not exist Or Target user is a cow-user!".to_string();
+        return HttpResponse::Ok().json(result_obj);
+    }
+
+    // Get target student's take-part-in missions list
+    let receive_tasks = db_control.get_student_missions(database_user_id);
+
+    for task in receive_tasks.iter() {
+        // Check target mission time state
+        let over_time = task.deadline < (Local::now()).naive_local();
+        
+        let database_poster_id: UserId = UserId::Uid(task.poster_uid);
+        let person_name = match db_control.get_user_from_identifier(database_poster_id) {
+            Some(User::Student(stu)) => stu.username,
+            Some(User::Cow(cow)) => cow.username,
+            None => "".to_string()
+        };
+
+        let mut user_finish_state = false;
+        // Find student finish state
+        for person in task.participants.iter() {
+            if person.student_uid == database_user_id && person.state.to_val() == 1{
+                user_finish_state = true;
+            }
+        }
+
+        let task_obj = json_objs::TaskBriefObj {
+            mid: task.mid,
+            poster_id: task.poster_uid,
+            poster_name: person_name,
+            task_state: over_time,
+            task_name: task.name.clone(),
+            task_intro: task.content.clone(),
+            task_mode: task.mission_type.to_val().into(),
+            task_pay: task.bounty,
+            task_time_limit: task.deadline.to_string(),
+            user_finish_state: Some(user_finish_state)
+        };
+
+        result_obj.tasks.push(task_obj);
+    }
+
     HttpResponse::Ok().json(result_obj)
 }
 
-pub fn check_task_self_release(_data: web::Json<json_objs::UserIdObj>) -> HttpResponse {
-    let result_obj = json_objs::GetTasksObj {
+pub fn check_task_self_release(data: web::Json<json_objs::UserIdObj>) -> HttpResponse {
+    let mut result_obj = json_objs::GetTasksObj {
         code: true,
         err_message: "".to_string(),
         tasks: vec![],
     };
 
+    // Init db-control
+    let db_control = Controller::new();
+
+    // Get target user's database-id
+    let wechat_user_id: UserId = UserId::WechatId(&data.userid);
+    let (database_user_id, username) = match db_control.get_user_from_identifier(wechat_user_id) {
+        Some(User::Cow(_)) => (-1, "".to_string()),
+        Some(User::Student(stu)) => (stu.uid, stu.username),
+        None => (-1, "".to_string()),
+    };
+
+    if database_user_id == -1 {
+        result_obj.code = false;
+        result_obj.err_message = "Target user not exist Or Target user is a cow-user!".to_string();
+        return HttpResponse::Ok().json(result_obj);
+    }
+
+    // Get target student's take-part-in missions list
+    let receive_tasks = db_control.get_poster_missions(database_user_id);
+
+    for task in receive_tasks.iter() {
+        // Check target mission time state
+        let over_time = task.deadline < (Local::now()).naive_local();
+
+        let task_obj = json_objs::TaskBriefObj {
+            mid: task.mid,
+            poster_id: task.poster_uid,
+            poster_name: username.clone(),
+            task_state: over_time,
+            task_name: task.name.clone(),
+            task_intro: task.content.clone(),
+            task_mode: task.mission_type.to_val().into(),
+            task_pay: task.bounty,
+            task_time_limit: task.deadline.to_string(),
+            user_finish_state: None
+        };
+
+        result_obj.tasks.push(task_obj);
+    }
+
     HttpResponse::Ok().json(result_obj)
 }
+
+// ===================== Wait Emtm-DB Implementation ===================== //
 
 pub fn check_question_naire(_data: web::Json<json_objs::CheckTaskObj>) -> HttpResponse {
     let result_obj = json_objs::AllAnswerObj {

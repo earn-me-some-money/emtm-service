@@ -45,8 +45,9 @@ pub struct LoginObj {
 // Task request Json Struct
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TaskRequestObj {
-    pub min_grade: Option<i8>,
-    pub max_grade: Option<i8>,
+    pub min_grade: Option<i32>,
+    pub max_grade: Option<i32>,
+    pub school: Option<String>,
     pub major: Option<String>,
     pub task_expe: Option<i32>,
     pub credit_score: Option<i32>,
@@ -81,7 +82,7 @@ pub struct UserIdObj {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CheckTaskObj {
     pub userid: String,
-    pub poster_id: String,
+    pub poster_id: i32,
     pub task_mid: i32,
 }
 
@@ -213,7 +214,7 @@ pub struct StuAnswerObj {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SubmitQuestionNaireObj {
     pub userid: String,
-    pub poster_id: String,
+    pub poster_id: i32,
     pub task_mid: i32,
     pub answers: Vec<StuAnswerObj>,
 }
@@ -331,7 +332,7 @@ pub struct ResponseForm {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TaskBriefObj {
     pub mid: i32,
-    pub poster_id: String,
+    pub poster_id: i32,
     pub poster_name: String,
     pub task_state: bool,
     pub task_name: String,
@@ -374,7 +375,7 @@ pub struct TaskDetailObj {
     pub err_message: String,
     // Brief description
     pub mid: Option<i32>,
-    pub poster_id: Option<String>,
+    pub poster_id: Option<i32>,
     pub poster_name: Option<String>,
     pub task_state: Option<bool>,
     pub task_user_state: Option<bool>,
