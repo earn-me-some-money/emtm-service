@@ -96,6 +96,14 @@ pub fn check_question_naire(data: web::Json<json_objs::CheckTaskObj>) -> HttpRes
     task_control::check_question_naire(data)
 }
 
+pub fn check_transaction(data: web::Json<json_objs::CheckTaskObj>) -> HttpResponse {
+    task_control::check_transaction(data)
+}
+
+pub fn check_errand(data: web::Json<json_objs::CheckTaskObj>) -> HttpResponse {
+    task_control::check_errand(data)
+}
+
 pub fn recharge(data: web::Json<json_objs::RechargeObj>) -> HttpResponse {
     main_control::recharge(data)
 }
@@ -121,8 +129,8 @@ pub fn receive_task(data: web::Json<json_objs::CheckTaskObj>) -> HttpResponse {
     task_control::receive_task(data)
 }
 
-pub fn submit_task_cow(data: web::Json<json_objs::CheckTaskObj>) -> HttpResponse {
-    task_control::submit_task_cow(data)
+pub fn submit_task(data: web::Json<json_objs::SubmitTaskObj>) -> HttpResponse {
+    task_control::submit_task(data)
 }
 
 pub fn submit_task_stu(data: web::Json<json_objs::SubmitQuestionNaireObj>) -> HttpResponse {

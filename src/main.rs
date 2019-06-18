@@ -52,6 +52,13 @@ fn main() -> std::io::Result<()> {
                 web::resource("/check_question_naire")
                     .route(web::post().to(router::check_question_naire)),
             )
+            .service(
+                web::resource("/check_task_transaction")
+                    .route(web::post().to(router::check_transaction)),
+            )
+            .service(
+                web::resource("/check_task_errand").route(web::post().to(router::check_errand)),
+            )
             // User Verify
             .service(web::resource("/user_verify").route(web::post().to(router::user_verify)))
             // Mission Search
@@ -63,9 +70,7 @@ fn main() -> std::io::Result<()> {
             // Receive Tasks API
             .service(web::resource("/receive_task").route(web::post().to(router::receive_task)))
             // Submit Tasks APIs
-            .service(
-                web::resource("/submit_task_cow").route(web::post().to(router::submit_task_cow)),
-            )
+            .service(web::resource("/submit_task").route(web::post().to(router::submit_task)))
             .service(
                 web::resource("/submit_task_stu").route(web::post().to(router::submit_task_stu)),
             )

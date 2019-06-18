@@ -86,6 +86,14 @@ pub struct CheckTaskObj {
     pub task_mid: i32,
 }
 
+// Submit task request
+#[derive(Debug, Serialize, Deserialize)]
+pub struct SubmitTaskObj {
+    pub userid: String,
+    pub student_id: i32,
+    pub task_mid: i32,
+}
+
 // Create group Parse Json Struct
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CreateGroupObj {
@@ -106,14 +114,6 @@ pub struct JoinGroupObj {
 pub struct AddFriendObj {
     pub userid: String,
     pub friend_name: String,
-}
-
-// Submit task Parse Json Struct
-#[derive(Debug, Serialize, Deserialize)]
-pub struct SubmitTaskObj {
-    pub userid: String,
-    pub target_userid: String,
-    pub target_task: String,
 }
 
 // Recharge Json Struct
@@ -168,7 +168,7 @@ pub struct TransactionObj {
     pub mid: i32,
     pub t_type: String,
     pub info: String,
-    pub loss: String,
+    pub loss: i8,
     pub address: String,
 }
 
@@ -176,7 +176,8 @@ pub struct TransactionObj {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ErrandObj {
     pub mid: i32,
-    pub address: String,
+    pub pickup_address: String,
+    pub deliver_address: String,
     pub phone_number: String,
     pub pick_number: String,
     pub info: String,
@@ -193,7 +194,7 @@ pub struct QuestionNaireObj {
 pub struct StuAnswerObj {
     pub order: i32,
     pub answer: Option<String>,
-    pub choices: Option<Vec<String>>,
+    pub choices: Option<Vec<i32>>,
 }
 
 // Student submit questionnaire Obj
@@ -385,7 +386,7 @@ pub struct AnswerObj {
     pub q_type: i32,
     pub content: String,
     pub answer: Option<String>,
-    pub choices: Option<Vec<String>>,
+    pub choices: Option<Vec<i32>>,
 }
 
 // Questionnaire Whole Answers Struct
@@ -394,6 +395,29 @@ pub struct AllAnswerObj {
     pub code: bool,
     pub err_message: String,
     pub answers: Vec<AnswerObj>,
+}
+
+// Get transaction task detail obj
+#[derive(Debug, Serialize, Deserialize)]
+pub struct TransactionResultObj {
+    pub code: bool,
+    pub err_message: String,
+    pub t_type: String,
+    pub info: String,
+    pub loss: i8,
+    pub address: String,
+}
+
+// Get errand task detail obj
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ErrandResultObj {
+    pub code: bool,
+    pub err_message: String,
+    pub pickup_address: String,
+    pub deliver_address: String,
+    pub phone_number: String,
+    pub pick_number: String,
+    pub info: String,
 }
 
 // User Balance return
