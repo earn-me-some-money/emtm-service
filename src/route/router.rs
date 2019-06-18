@@ -117,7 +117,7 @@ pub fn add_friend(data: web::Json<json_objs::AddFriendObj>) -> HttpResponse {
     group_control::add_friend(data)
 }
 
-pub fn receive_task(data: web::Json<json_objs::ReceiveTaskObj>) -> HttpResponse {
+pub fn receive_task(data: web::Json<json_objs::CheckTaskObj>) -> HttpResponse {
     task_control::receive_task(data)
 }
 
@@ -129,12 +129,16 @@ pub fn submit_task_stu(data: web::Json<json_objs::SubmitQuestionNaireObj>) -> Ht
     task_control::submit_task_stu(data)
 }
 
-pub fn check_credit(data: web::Json<json_objs::CheckCreditObj>) -> HttpResponse {
+pub fn check_credit(data: web::Json<json_objs::UserIdObj>) -> HttpResponse {
     main_control::check_credit(data)
 }
 
 pub fn withdraw(data: web::Json<json_objs::WithdrawObj>) -> HttpResponse {
     main_control::withdraw(data)
+}
+
+pub fn get_balance(data: web::Json<json_objs::UserIdObj>) -> HttpResponse {
+    main_control::get_balance(data)
 }
 
 pub fn user_verify(

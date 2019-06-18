@@ -11,6 +11,11 @@ use actix_web::{
     web, HttpResponse,
 };
 use chrono::{Local, NaiveDateTime};
+use emtm_db::controller::{
+    user_controller::UserController, Controller, 
+    school_controller_zh::SchoolControllerZh
+};
+use emtm_db::models::users::{User, UserId};
 use emtm_verify::Verifier;
 use futures::{future, Future};
 use log::*;
@@ -40,30 +45,171 @@ pub fn index() -> HttpResponse {
 
 // Credit And Account Management
 
-pub fn check_credit(_data: web::Json<json_objs::CheckCreditObj>) -> HttpResponse {
-    let result_obj = json_objs::CreditScoreObj {
+pub fn check_credit(data: web::Json<json_objs::UserIdObj>) -> HttpResponse {
+    let mut result_obj = json_objs::CreditScoreObj {
         code: true,
         err_message: "".to_string(),
         credit_score: 0,
     };
 
+    let db_control = Controller::new();
+
+    let wechat_id : UserId = UserId::WechatId(&data.userid);
+    let user_credit = match db_control.get_user_from_identifier(wechat_id) {
+        Some(User::Cow(_)) => -1,
+        Some(User::Student(stu)) => stu.credit,
+        None => -1
+    };
+
+    if user_credit == -1 {
+        result_obj.code = false;
+        result_obj.err_message = "Cannot find target student-user in database!".to_string();
+        return HttpResponse::Ok().json(result_obj);
+    }
+    else {
+        result_obj.credit_score = user_credit.into();
+    }
+
     HttpResponse::Ok().json(result_obj)
 }
 
-pub fn recharge(_data: web::Json<json_objs::RechargeObj>) -> HttpResponse {
-    let result_obj = json_objs::OriginObj {
+pub fn recharge(data: web::Json<json_objs::RechargeObj>) -> HttpResponse {
+    let mut result_obj = json_objs::OriginObj {
         code: true,
         err_message: "".to_string(),
     };
 
+    let db_control = Controller::new();
+
+    let wechat_id : UserId = UserId::WechatId(&data.userid);
+    let target_user_exist = match db_control.get_user_from_identifier(wechat_id.clone()) {
+        Some(_) => true,
+        None => false
+    };
+
+    if !target_user_exist {
+        result_obj.code = false;
+        result_obj.err_message = "Error! Cannot reach target user with input wechat-id!".to_string();
+        return HttpResponse::Ok().json(result_obj);
+    }
+    // Get target user
+    let mut target_user_tokens = match db_control.get_user_from_identifier(wechat_id.clone()).unwrap() {
+        User::Cow(cow) => cow.tokens,
+        User::Student(stu) => stu.tokens
+    };
+
+    if data.recharge_amount <= 0 {
+        result_obj.code = false;
+        result_obj.err_message = "Please don't make negative or zero rechargement!".to_string();
+        return HttpResponse::Ok().json(result_obj);
+    }
+    else {
+        target_user_tokens += data.recharge_amount;
+        let target_user = match db_control.get_user_from_identifier(wechat_id).unwrap() {
+            User::Cow(mut cow) => {
+                cow.tokens = target_user_tokens;
+                User::Cow(cow)
+            }
+            User::Student(mut stu) => {
+                stu.tokens = target_user_tokens;
+                User::Student(stu)
+            }
+        };
+
+        let new_user = vec![target_user];
+        // Update back into db
+        match &db_control.update_users(&new_user)[0] {
+            Ok(_) => {}
+            Err(err) => {
+                result_obj.code = false;
+                result_obj.err_message = format!("{}", err);
+            }
+        };
+    }
+
     HttpResponse::Ok().json(result_obj)
 }
 
-pub fn withdraw(_data: web::Json<json_objs::WithdrawObj>) -> HttpResponse {
-    let result_obj = json_objs::OriginObj {
+pub fn withdraw(data: web::Json<json_objs::WithdrawObj>) -> HttpResponse {
+    let mut result_obj = json_objs::OriginObj {
         code: true,
         err_message: "".to_string(),
     };
+
+    let db_control = Controller::new();
+
+    let wechat_id : UserId = UserId::WechatId(&data.userid);
+    let target_user_exist = match db_control.get_user_from_identifier(wechat_id.clone()) {
+        Some(_) => true,
+        None => false
+    };
+
+    if !target_user_exist {
+        result_obj.code = false;
+        result_obj.err_message = "Error! Cannot reach target user with input wechat-id!".to_string();
+        return HttpResponse::Ok().json(result_obj);
+    }
+    // Get target user
+    let mut target_user_tokens = match db_control.get_user_from_identifier(wechat_id.clone()).unwrap() {
+        User::Cow(cow) => cow.tokens,
+        User::Student(stu) => stu.tokens
+    };
+
+    if data.withdraw_amount > target_user_tokens {
+        result_obj.code = false;
+        result_obj.err_message = "Error! Withdraw amount larger than user's balance!".to_string();
+        return HttpResponse::Ok().json(result_obj);
+    }
+    else {
+        target_user_tokens -= data.withdraw_amount;
+        let target_user = match db_control.get_user_from_identifier(wechat_id).unwrap() {
+            User::Cow(mut cow) => {
+                cow.tokens = target_user_tokens;
+                User::Cow(cow)
+            }
+            User::Student(mut stu) => {
+                stu.tokens = target_user_tokens;
+                User::Student(stu)
+            }
+        };
+
+        let new_user = vec![target_user];
+        // Update back into db
+        match &db_control.update_users(&new_user)[0] {
+            Ok(_) => {}
+            Err(err) => {
+                result_obj.code = false;
+                result_obj.err_message = format!("{}", err);
+            }
+        };
+    }
+
+    HttpResponse::Ok().json(result_obj)
+}
+
+pub fn get_balance(data: web::Json<json_objs::UserIdObj>) -> HttpResponse {
+    let mut result_obj = json_objs::BalanceObj {
+        code: true,
+        err_message: "".to_string(),
+        balance: 0
+    };
+
+    let db_control = Controller::new();
+
+    let user_wechat_id : UserId = UserId::WechatId(&data.userid);
+    let user_balance = match db_control.get_user_from_identifier(user_wechat_id) {
+        Some(User::Cow(cow)) => cow.tokens,
+        Some(User::Student(stu)) => stu.tokens,
+        None => -1
+    };
+
+    if user_balance < 0 {
+        result_obj.code = false;
+        result_obj.err_message = "Error! Cannot find target user in database!".to_string();
+        return HttpResponse::Ok().json(result_obj);
+    }
+
+    result_obj.balance = user_balance;
 
     HttpResponse::Ok().json(result_obj)
 }
@@ -160,8 +306,8 @@ pub fn get_wechatid(
     Box::new(ret)
 }
 
-pub fn get_cow_info(_data: web::Json<json_objs::UserIdObj>) -> HttpResponse {
-    let result_obj = json_objs::CowInfoObj {
+pub fn get_cow_info(data: web::Json<json_objs::UserIdObj>) -> HttpResponse {
+    let mut result_obj = json_objs::CowInfoObj {
         code: true,
         err_message: "".to_string(),
 
@@ -172,11 +318,37 @@ pub fn get_cow_info(_data: web::Json<json_objs::UserIdObj>) -> HttpResponse {
         organization: "".to_string(),
     };
 
+    let db_control = Controller::new();
+
+    let user_wechat_id : UserId = UserId::WechatId(&data.userid);
+    let user_exist = match db_control.get_user_from_identifier(user_wechat_id.clone()) {
+        Some(User::Cow(_)) => true,
+        Some(User::Student(_)) => false,
+        None => false
+    };
+
+    if !user_exist {
+        result_obj.code = false;
+        result_obj.err_message = "Cannot find target cow user with userid!".to_string();
+        return HttpResponse::Ok().json(result_obj);
+    }
+
+    match db_control.get_user_from_identifier(user_wechat_id).unwrap() {
+        User::Cow(cow) => {
+            result_obj.username = cow.username;
+            result_obj.email = cow.email;
+            result_obj.phone = cow.phone;
+            result_obj.infos = cow.personal_info;
+            result_obj.organization = cow.company
+        }
+        User::Student(_) => {}
+    };
+
     HttpResponse::Ok().json(result_obj)
 }
 
-pub fn get_stu_info(_data: web::Json<json_objs::UserIdObj>) -> HttpResponse {
-    let result_obj = json_objs::StuInfoObj {
+pub fn get_stu_info(data: web::Json<json_objs::UserIdObj>) -> HttpResponse {
+    let mut result_obj = json_objs::StuInfoObj {
         code: true,
         err_message: "".to_string(),
 
@@ -194,23 +366,190 @@ pub fn get_stu_info(_data: web::Json<json_objs::UserIdObj>) -> HttpResponse {
         finished: 0,
     };
 
-    HttpResponse::Ok().json(result_obj)
-}
+    let db_control = Controller::new();
 
-pub fn edit_cow_info(_data: web::Json<json_objs::CowEditInfoObj>) -> HttpResponse {
-    let result_obj = json_objs::OriginObj {
-        code: true,
-        err_message: "".to_string(),
+    let user_wechat_id : UserId = UserId::WechatId(&data.userid);
+    let user_exist = match db_control.get_user_from_identifier(user_wechat_id.clone()) {
+        Some(User::Cow(_)) => false,
+        Some(User::Student(_)) => true,
+        None => false
+    };
+
+    if !user_exist {
+        result_obj.code = false;
+        result_obj.err_message = "Cannot find target student user with userid!".to_string();
+        return HttpResponse::Ok().json(result_obj);
+    }
+
+    match db_control.get_user_from_identifier(user_wechat_id).unwrap() {
+        User::Student(stu) => {
+            result_obj.username = stu.username;
+            result_obj.email = stu.email;
+            result_obj.phone = stu.phone;
+            result_obj.infos = stu.personal_info;
+            result_obj.school_name = db_control.get_school_name(stu.school_id).unwrap();
+            result_obj.student_id = stu.student_id;
+            result_obj.major = stu.major;
+            result_obj.year = stu.year;
+
+            result_obj.credit = stu.credit;
+            result_obj.accepted = stu.accepted;
+            result_obj.finished = stu.finished;
+        }
+        User::Cow(_) => {}
     };
 
     HttpResponse::Ok().json(result_obj)
 }
 
-pub fn edit_stu_info(_data: web::Json<json_objs::StuEditInfoObj>) -> HttpResponse {
-    let result_obj = json_objs::OriginObj {
+pub fn edit_cow_info(data: web::Json<json_objs::CowEditInfoObj>) -> HttpResponse {
+    let mut result_obj = json_objs::OriginObj {
         code: true,
-        err_message: "".to_string(),
+        err_message: "".to_string()
     };
+
+    let db_control = Controller::new();
+
+    let user_wechat_id : UserId = UserId::WechatId(&data.userid);
+    let cow_exist = match db_control.get_user_from_identifier(user_wechat_id.clone()) {
+        Some(User::Cow(_)) => true,
+        Some(User::Student(_)) => false,
+        None => false
+    };
+
+    if !cow_exist {
+        result_obj.code = false;
+        result_obj.err_message = "Error! Cannot find target cow-user in database!".to_string();
+        return HttpResponse::Ok().json(result_obj);
+    }
+
+    // Check new_email dupliation
+    let check_user_email: UserId = UserId::Email(&data.new_email);
+    let email_dup = match db_control.get_user_from_identifier(check_user_email) {
+        Some(x) => match x {
+            User::Cow(cow) => cow.wechat_id != data.userid,
+            User::Student(stu) => stu.wechat_id != data.userid
+        },
+        None => false
+    };
+
+    if email_dup {
+        result_obj.code = false;
+        result_obj.err_message = "Error! New Email has duplication with other users!".to_string();
+        return HttpResponse::Ok().json(result_obj);
+    }
+
+    // Check new phone duplication
+    let check_user_phone: UserId = UserId::Phone(&data.new_phone);
+    let phone_dup = match db_control.get_user_from_identifier(check_user_phone) {
+        Some(x) => match x {
+            User::Cow(cow) => cow.wechat_id != data.userid,
+            User::Student(stu) => stu.wechat_id != data.userid
+        },
+        None => false
+    };
+
+    if phone_dup {
+        result_obj.code = false;
+        result_obj.err_message = "Error! New Phone has duplication with other users!".to_string();
+        return HttpResponse::Ok().json(result_obj);
+    }
+
+    match db_control.get_user_from_identifier(user_wechat_id).unwrap() {
+        User::Cow(mut cow) => {
+            cow.email = data.new_email.clone();
+            cow.phone = data.new_phone.clone();
+            cow.personal_info = data.new_infos.clone();
+            let update_users = vec![User::Cow(cow)];
+            match &db_control.update_users(&update_users)[0] {
+                Ok(_) => {}
+                Err(err) => {
+                    result_obj.code = false;
+                    result_obj.err_message = format!("{}", err);
+                }
+            }
+        }
+        User::Student(_) => {}
+    }
+
+
+    HttpResponse::Ok().json(result_obj)
+}
+
+pub fn edit_stu_info(data: web::Json<json_objs::StuEditInfoObj>) -> HttpResponse {
+    let mut result_obj = json_objs::OriginObj {
+        code: true,
+        err_message: "".to_string()
+    };
+
+    let db_control = Controller::new();
+
+    let user_wechat_id : UserId = UserId::WechatId(&data.userid);
+    let cow_exist = match db_control.get_user_from_identifier(user_wechat_id.clone()) {
+        Some(User::Cow(_)) => false,
+        Some(User::Student(_)) => true,
+        None => false
+    };
+
+    if !cow_exist {
+        result_obj.code = false;
+        result_obj.err_message = "Error! Cannot find target student-user in database!".to_string();
+        return HttpResponse::Ok().json(result_obj);
+    }
+
+    // Check new_email dupliation
+    let check_user_email: UserId = UserId::Email(&data.new_email);
+    let email_dup = match db_control.get_user_from_identifier(check_user_email) {
+        Some(x) => match x {
+            User::Cow(cow) => cow.wechat_id != data.userid,
+            User::Student(stu) => stu.wechat_id != data.userid
+        },
+        None => false
+    };
+
+    if email_dup {
+        result_obj.code = false;
+        result_obj.err_message = "Error! New Email has duplication with other users!".to_string();
+        return HttpResponse::Ok().json(result_obj);
+    }
+
+    // Check new phone duplication
+    let check_user_phone: UserId = UserId::Phone(&data.new_phone);
+    let phone_dup = match db_control.get_user_from_identifier(check_user_phone) {
+        Some(x) => match x {
+            User::Cow(cow) => cow.wechat_id != data.userid,
+            User::Student(stu) => stu.wechat_id != data.userid
+        },
+        None => false
+    };
+
+    if phone_dup {
+        result_obj.code = false;
+        result_obj.err_message = "Error! New Phone has duplication with other users!".to_string();
+        return HttpResponse::Ok().json(result_obj);
+    }
+
+    
+
+    match db_control.get_user_from_identifier(user_wechat_id).unwrap() {
+        User::Student(mut stu) => {
+            stu.email = data.new_email.clone();
+            stu.phone = data.new_phone.clone();
+            stu.personal_info = data.new_infos.clone();
+            stu.major = data.new_major.clone();
+            stu.year = data.new_year;
+            let update_users = vec![User::Student(stu)];
+            match &db_control.update_users(&update_users)[0] {
+                Ok(_) => {}
+                Err(err) => {
+                    result_obj.code = false;
+                    result_obj.err_message = format!("{}", err);
+                }
+            }
+        }
+        User::Cow(_) => {}
+    }
+
 
     HttpResponse::Ok().json(result_obj)
 }

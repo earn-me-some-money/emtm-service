@@ -72,6 +72,7 @@ fn main() -> std::io::Result<()> {
             // User balance management
             .service(web::resource("/recharge").route(web::post().to(router::recharge)))
             .service(web::resource("/withdraw").route(web::post().to(router::withdraw)))
+            .service(web::resource("/get_balance").route(web::post().to(router::get_balance)))
             .service(web::resource("/check_credit").route(web::post().to(router::check_credit)))
             // User Infos management
             .service(web::resource("/get_cow_info").route(web::post().to(router::get_cow_info)))

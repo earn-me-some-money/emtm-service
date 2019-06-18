@@ -70,7 +70,7 @@ pub struct ReleaseTaskObj {
 // Check tasks Parse Json Struct
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TaskTypeObj {
-    pub task_type: i32,
+    pub task_type: i8,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -108,14 +108,6 @@ pub struct AddFriendObj {
     pub friend_name: String,
 }
 
-// Receive task Parse Json Struct
-#[derive(Debug, Serialize, Deserialize)]
-pub struct ReceiveTaskObj {
-    pub userid: String,
-    pub target_userid: String,
-    pub target_task: String,
-}
-
 // Submit task Parse Json Struct
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SubmitTaskObj {
@@ -124,24 +116,18 @@ pub struct SubmitTaskObj {
     pub target_task: String,
 }
 
-// Check credit Parse Json Struct
-#[derive(Debug, Serialize, Deserialize)]
-pub struct CheckCreditObj {
-    pub userid: String,
-}
-
 // Recharge Json Struct
 #[derive(Debug, Serialize, Deserialize)]
 pub struct RechargeObj {
     pub userid: String,
-    pub recharge_amount: String,
+    pub recharge_amount: i32,
 }
 
 // Withdraw Json Struct
 #[derive(Debug, Serialize, Deserialize)]
 pub struct WithdrawObj {
     pub userid: String,
-    pub withdraw_amount: String,
+    pub withdraw_amount: i32,
 }
 
 // Mission Search Struct
@@ -378,7 +364,7 @@ pub struct TaskDetailObj {
     pub poster_id: Option<i32>,
     pub poster_name: Option<String>,
     pub task_state: Option<bool>,
-    pub task_user_state: Option<bool>,
+    pub task_user_state: Option<i32>,
     pub task_name: Option<String>,
     pub task_intro: Option<String>,
     pub task_mode: Option<i32>,

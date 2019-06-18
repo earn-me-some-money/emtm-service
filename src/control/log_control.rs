@@ -124,7 +124,8 @@ pub fn logup_student(data: web::Json<json_objs::StuLogupObj>) -> HttpResponse {
         result_obj.code = false;
         result_obj.err_message = "Cannot Pass Email Format Checking!".to_string();
         return HttpResponse::Ok().json(result_obj);
-    } else if !main_control::phone_format(&data.phone) {
+    } 
+    else if !main_control::phone_format(&data.phone) {
         // Checking phone format
         result_obj.code = false;
         result_obj.err_message = "Cannot Pass Phone Format Checking!".to_string();
