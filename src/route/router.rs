@@ -92,7 +92,7 @@ pub fn check_task_self_release(data: web::Json<json_objs::UserIdObj>) -> HttpRes
     task_control::check_task_self_release(data)
 }
 
-pub fn check_question_naire(data: web::Json<json_objs::CheckTaskObj>) -> HttpResponse {
+pub fn check_question_naire(data: web::Json<json_objs::SubmitTaskObj>) -> HttpResponse {
     task_control::check_question_naire(data)
 }
 

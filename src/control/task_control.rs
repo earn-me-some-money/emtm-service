@@ -146,7 +146,21 @@ pub fn release_task_question(data: web::Json<json_objs::QuestionNaireObj>) -> Ht
 
     // Check mission_id validation
     match db_control.get_mission_from_mid(data.mid) {
-        Some(_) => {}
+        Some(task) => {
+            // Check mission releaser is student or not
+            let poster_uid = task.poster_uid;
+            let is_stu = match db_control.get_user_from_identifier(UserId::Uid(poster_uid)) {
+                Some(User::Cow(_)) => true,
+                Some(User::Student(_)) => false,
+                None => false,
+            };
+            if !is_stu {
+                result_obj.code = false;
+                result_obj.err_message =
+                    "Error! Target mission poster is not a cow user!".to_string();
+                return HttpResponse::Ok().json(result_obj);
+            }
+        }
         None => {
             result_obj.code = false;
             result_obj.err_message = "Error! Cannot find mission with target mid!".to_string();
@@ -177,12 +191,28 @@ pub fn release_task_question(data: web::Json<json_objs::QuestionNaireObj>) -> Ht
         questions.push(db_question);
     }
 
+    // Check current release mission has no other records
+    let has_record = match db_control.get_errand(data.mid) {
+        Some(_) => true,
+        None => match db_control.get_trade(data.mid) {
+            Some(_) => true,
+            None => false,
+        },
+    };
+    if has_record {
+        result_obj.code = false;
+        result_obj.err_message =
+            "Duplicatioin Error! Database already has target mission's record!".to_string();
+        return HttpResponse::Ok().json(result_obj);
+    }
+
     // Push into db
     match db_control.add_questions(questions, data.mid) {
         Ok(_) => {}
-        Err(err) => {
+        Err(_) => {
             result_obj.code = false;
-            result_obj.err_message = format!("{}", err);
+            result_obj.err_message =
+                "Duplicatioin Error! Cannot rewrite questionnaire task detail!".to_string();
         }
     }
 
@@ -199,7 +229,21 @@ pub fn release_task_transaction(data: web::Json<json_objs::TransactionObj>) -> H
 
     // Check mission_id validation
     match db_control.get_mission_from_mid(data.mid) {
-        Some(_) => {}
+        Some(task) => {
+            // Check mission releaser is student or not
+            let poster_uid = task.poster_uid;
+            let is_stu = match db_control.get_user_from_identifier(UserId::Uid(poster_uid)) {
+                Some(User::Cow(_)) => false,
+                Some(User::Student(_)) => true,
+                None => false,
+            };
+            if !is_stu {
+                result_obj.code = false;
+                result_obj.err_message =
+                    "Error! Target mission poster is not a student user!".to_string();
+                return HttpResponse::Ok().json(result_obj);
+            }
+        }
         None => {
             result_obj.code = false;
             result_obj.err_message = "Error! Cannot find mission with target mid!".to_string();
@@ -216,11 +260,33 @@ pub fn release_task_transaction(data: web::Json<json_objs::TransactionObj>) -> H
         address: data.address.clone(),
     };
 
+    // Check current release mission has no other records
+    let has_record = match db_control.get_questionnaire(data.mid) {
+        Ok(questions) => {
+            if questions.len() > 0 {
+                true
+            } else {
+                match db_control.get_errand(data.mid) {
+                    Some(_) => true,
+                    None => false,
+                }
+            }
+        }
+        Err(_) => true,
+    };
+    if has_record {
+        result_obj.code = false;
+        result_obj.err_message =
+            "Duplicatioin Error! Database already has target mission's record!".to_string();
+        return HttpResponse::Ok().json(result_obj);
+    }
+
     match db_control.add_trade(&trade) {
         Ok(_) => {}
-        Err(err) => {
+        Err(_) => {
             result_obj.code = false;
-            result_obj.err_message = format!("{}", err);
+            result_obj.err_message =
+                "Duplicatioin Error! Cannot rewrite transaction task detail!".to_string();
         }
     }
 
@@ -237,7 +303,21 @@ pub fn release_task_errand(data: web::Json<json_objs::ErrandObj>) -> HttpRespons
 
     // Check mission_id validation
     match db_control.get_mission_from_mid(data.mid) {
-        Some(_) => {}
+        Some(task) => {
+            // Check mission releaser is student or not
+            let poster_uid = task.poster_uid;
+            let is_stu = match db_control.get_user_from_identifier(UserId::Uid(poster_uid)) {
+                Some(User::Cow(_)) => false,
+                Some(User::Student(_)) => true,
+                None => false,
+            };
+            if !is_stu {
+                result_obj.code = false;
+                result_obj.err_message =
+                    "Error! Target mission poster is not a student user!".to_string();
+                return HttpResponse::Ok().json(result_obj);
+            }
+        }
         None => {
             result_obj.code = false;
             result_obj.err_message = "Error! Cannot find mission with target mid!".to_string();
@@ -255,11 +335,33 @@ pub fn release_task_errand(data: web::Json<json_objs::ErrandObj>) -> HttpRespons
         other_info: data.info.clone(),
     };
 
+    // Check current release mission has no other records
+    let has_record = match db_control.get_questionnaire(data.mid) {
+        Ok(questions) => {
+            if questions.len() > 0 {
+                true
+            } else {
+                match db_control.get_trade(data.mid) {
+                    Some(_) => true,
+                    None => false,
+                }
+            }
+        }
+        Err(_) => true,
+    };
+    if has_record {
+        result_obj.code = false;
+        result_obj.err_message =
+            "Duplicatioin Error! Database already has target mission's record!".to_string();
+        return HttpResponse::Ok().json(result_obj);
+    }
+
     match db_control.add_errand(&errand) {
         Ok(_) => {}
-        Err(err) => {
+        Err(_) => {
             result_obj.code = false;
-            result_obj.err_message = format!("{}", err);
+            result_obj.err_message =
+                "Duplicatioin Error! Cannot rewrite errand task detail!".to_string();
         }
     }
 
@@ -583,7 +685,7 @@ pub fn check_task_self_release(data: web::Json<json_objs::UserIdObj>) -> HttpRes
     HttpResponse::Ok().json(result_obj)
 }
 
-pub fn check_question_naire(data: web::Json<json_objs::CheckTaskObj>) -> HttpResponse {
+pub fn check_question_naire(data: web::Json<json_objs::SubmitTaskObj>) -> HttpResponse {
     let mut result_obj = json_objs::AllAnswerObj {
         code: true,
         err_message: "".to_string(),
@@ -591,21 +693,6 @@ pub fn check_question_naire(data: web::Json<json_objs::CheckTaskObj>) -> HttpRes
     };
 
     let db_control = Controller::new();
-    // Check user existence
-    let user_wechat_id: UserId = UserId::WechatId(&data.userid);
-    let cow_user_uid = match db_control.get_user_from_identifier(user_wechat_id) {
-        Some(User::Cow(cow)) => cow.uid,
-        Some(User::Student(_)) => -1,
-        None => -1,
-    };
-
-    if cow_user_uid == -1 || cow_user_uid != data.poster_id {
-        result_obj.code = false;
-        result_obj.err_message =
-            "Error! Only Questionnaire Poster Cow-User can check questionnaire answers!"
-                .to_string();
-        return HttpResponse::Ok().json(result_obj);
-    }
 
     // Check target mission exist or not
     match db_control.get_mission_from_mid(data.task_mid) {
@@ -615,6 +702,38 @@ pub fn check_question_naire(data: web::Json<json_objs::CheckTaskObj>) -> HttpRes
             result_obj.err_message = "Error! Cannot find mission with target mid!".to_string();
             return HttpResponse::Ok().json(result_obj);
         }
+    }
+
+    // Judge target student is mission participant or not
+    let mut is_part = false;
+    let mission = db_control.get_mission_from_mid(data.task_mid).unwrap();
+    for person in mission.participants.iter() {
+        if person.student_uid == data.student_id {
+            is_part = true;
+            break;
+        }
+    }
+
+    if !is_part {
+        result_obj.code = false;
+        result_obj.err_message = "Error! Targets student is not the mission's participant!".to_string();
+        return HttpResponse::Ok().json(result_obj);
+    }
+
+    // Check user existence
+    let user_wechat_id: UserId = UserId::WechatId(&data.userid);
+    let cow_user_uid = match db_control.get_user_from_identifier(user_wechat_id) {
+        Some(User::Cow(cow)) => cow.uid,
+        Some(User::Student(_)) => -1,
+        None => -1,
+    };
+
+    if cow_user_uid == -1 || cow_user_uid != mission.poster_uid {
+        result_obj.code = false;
+        result_obj.err_message =
+            "Error! Only Questionnaire Poster Cow-User can check questionnaire answers!"
+                .to_string();
+        return HttpResponse::Ok().json(result_obj);
     }
 
     // Get mission questionnaire
@@ -631,7 +750,7 @@ pub fn check_question_naire(data: web::Json<json_objs::CheckTaskObj>) -> HttpRes
         return HttpResponse::Ok().json(result_obj);
     } else {
         // Get target student answers
-        let student_answers = match db_control.get_student_answer(data.task_mid, cow_user_uid) {
+        let student_answers = match db_control.get_student_answer(data.task_mid, data.student_id) {
             Ok(answers) => Some(answers),
             Err(err) => {
                 result_obj.code = false;
@@ -995,6 +1114,13 @@ pub fn submit_task(data: web::Json<json_objs::SubmitTaskObj>) -> HttpResponse {
                     "Error! Current User does not have permission to confirm task submition!"
                         .to_string();
             }
+
+            // Only transaction and errand task can use this API
+            if task.mission_type.to_val() == 0 {
+                result_obj.code = false;
+                result_obj.err_message =
+                    "Error! Only transaction and errand tasks can confirm by poster!".to_string();
+            }
         }
         None => {
             result_obj.code = false;
@@ -1049,8 +1175,8 @@ pub fn submit_task_stu(data: web::Json<json_objs::SubmitQuestionNaireObj>) -> Ht
 
     // Get target mission
     match db_control.get_mission_from_mid(data.task_mid) {
-        Some(_) => {
-            if data.poster_id != data.poster_id {
+        Some(task) => {
+            if data.poster_id != task.poster_uid {
                 result_obj.code = false;
                 result_obj.err_message =
                     "Error! Mission poster does not match your input poster_id!".to_string();
@@ -1079,6 +1205,19 @@ pub fn submit_task_stu(data: web::Json<json_objs::SubmitQuestionNaireObj>) -> Ht
 
     for person in participants.iter() {
         if person.student_uid == current_uid {
+            // Submit target student's mission state
+            let updated_part = Participant {
+                student_uid: current_uid,
+                state: PartState::Finished,
+            };
+            match db_control.update_participant(data.task_mid, &updated_part) {
+                Ok(_) => {}
+                Err(err) => {
+                    result_obj.code = false;
+                    result_obj.err_message = format!("{}", err);
+                    return HttpResponse::Ok().json(result_obj);
+                }
+            }
             is_part = true;
             break;
         }
@@ -1142,6 +1281,15 @@ pub fn submit_task_stu(data: web::Json<json_objs::SubmitQuestionNaireObj>) -> Ht
         the_answer.user_answer.push(special_answer);
         index += 1;
     }
+
+    // Store into db
+    match db_control.add_answer(&the_answer) {
+        Ok(_) => {}
+        Err(err) => {
+            result_obj.code = false;
+            result_obj.err_message = format!("{}", err);
+        }
+    }    
 
     HttpResponse::Ok().json(result_obj)
 }
