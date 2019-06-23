@@ -716,7 +716,8 @@ pub fn check_question_naire(data: web::Json<json_objs::SubmitTaskObj>) -> HttpRe
 
     if !is_part {
         result_obj.code = false;
-        result_obj.err_message = "Error! Targets student is not the mission's participant!".to_string();
+        result_obj.err_message =
+            "Error! Targets student is not the mission's participant!".to_string();
         return HttpResponse::Ok().json(result_obj);
     }
 
@@ -1289,7 +1290,7 @@ pub fn submit_task_stu(data: web::Json<json_objs::SubmitQuestionNaireObj>) -> Ht
             result_obj.code = false;
             result_obj.err_message = format!("{}", err);
         }
-    }    
+    }
 
     HttpResponse::Ok().json(result_obj)
 }
@@ -1364,7 +1365,8 @@ pub fn get_tasks_by_range(data: web::Json<json_objs::TaskRangeObj>) -> HttpRespo
 
                 if poster_name == "".to_string() {
                     result_obj.code = false;
-                    result_obj.err_message = "Database Error! Cannot reach poster's name!".to_string();
+                    result_obj.err_message =
+                        "Database Error! Cannot reach poster's name!".to_string();
                     return HttpResponse::Ok().json(result_obj);
                 }
 

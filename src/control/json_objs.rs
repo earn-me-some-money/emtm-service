@@ -77,7 +77,7 @@ pub struct TaskTypeObj {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TaskRangeObj {
     pub start: i32,
-    pub offset: i32
+    pub offset: i32,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
