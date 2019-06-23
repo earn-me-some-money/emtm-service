@@ -50,9 +50,12 @@ fn main() -> std::io::Result<()> {
                     .route(web::get().to(router::check_task_self_release)),
             )
             .service(
-                web::resource("/task/question-naire").route(web::get().to(router::check_question_naire)),
+                web::resource("/task/question-naire")
+                    .route(web::get().to(router::check_question_naire)),
             )
-            .service(web::resource("/task/transaction").route(web::get().to(router::check_transaction)))
+            .service(
+                web::resource("/task/transaction").route(web::get().to(router::check_transaction)),
+            )
             .service(web::resource("/task/errand").route(web::get().to(router::check_errand)))
             // User Verify
             .service(web::resource("/user/verify").route(web::post().to(router::user_verify)))
