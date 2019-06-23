@@ -166,6 +166,10 @@ pub fn get_tasks(data: web::Json<json_objs::TaskTypeObj>) -> HttpResponse {
     task_control::get_tasks(data)
 }
 
+pub fn get_tasks_by_range(data: web::Json<json_objs::TaskRangeObj>) -> HttpResponse {
+    task_control::get_tasks_by_range(data)
+}
+
 pub fn get_cow_info(data: web::Json<json_objs::UserIdObj>) -> HttpResponse {
     main_control::get_cow_info(data)
 }

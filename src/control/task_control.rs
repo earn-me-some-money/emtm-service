@@ -1340,3 +1340,55 @@ pub fn get_tasks(data: web::Json<json_objs::TaskTypeObj>) -> HttpResponse {
 
     HttpResponse::Ok().json(result_obj)
 }
+
+pub fn get_tasks_by_range(data: web::Json<json_objs::TaskRangeObj>) -> HttpResponse {
+    let mut result_obj = json_objs::GetTasksObj {
+        code: true,
+        err_message: "".to_string(),
+        tasks: vec![],
+    };
+
+    let db_control = Controller::new();
+    let (start, end) = (data.start, data.start + data.offset);
+
+    for index in start..end {
+        match db_control.get_mission_from_mid(index) {
+            Some(mission) => {
+                // Get poster name
+                let database_user_id: UserId = UserId::Uid(mission.poster_uid);
+                let poster_name = match db_control.get_user_from_identifier(database_user_id) {
+                    Some(User::Cow(cow)) => cow.username,
+                    Some(User::Student(stu)) => stu.username,
+                    None => "".to_string(),
+                };
+
+                if poster_name == "".to_string() {
+                    result_obj.code = false;
+                    result_obj.err_message = "Database Error! Cannot reach poster's name!".to_string();
+                    return HttpResponse::Ok().json(result_obj);
+                }
+
+                // Judge task state
+                let task_state = mission.deadline <= (Local::now()).naive_local();
+
+                let task = json_objs::TaskBriefObj {
+                    mid: mission.mid,
+                    poster_id: mission.poster_uid,
+                    poster_name: poster_name,
+                    task_state: task_state,
+                    task_name: mission.name.clone(),
+                    task_intro: mission.content.clone(),
+                    task_mode: mission.mission_type.to_val().into(),
+                    task_pay: mission.bounty,
+                    task_time_limit: mission.deadline.to_string(),
+                    user_finish_state: None,
+                };
+
+                result_obj.tasks.push(task);
+            }
+            None => {}
+        }
+    }
+
+    HttpResponse::Ok().json(result_obj)
+}

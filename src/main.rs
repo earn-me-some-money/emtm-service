@@ -24,6 +24,7 @@ fn main() -> std::io::Result<()> {
             .service(web::resource("/login").route(web::post().to(router::login)))
             // Get Tasks APIs
             .service(web::resource("/get_tasks").route(web::post().to(router::get_tasks)))
+            .service(web::resource("/get_tasks_by_range").route(web::post().to(router::get_tasks_by_range)))
             // Release Task APIs
             .service(web::resource("/release_task").route(web::post().to(router::release_task)))
             .service(
