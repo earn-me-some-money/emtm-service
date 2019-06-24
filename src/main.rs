@@ -79,7 +79,7 @@ fn main() -> std::io::Result<()> {
             .service(web::resource("/info/stu").route(web::get().to(router::get_stu_info)))
             .service(web::resource("/info/stu/edit").route(web::post().to(router::edit_stu_info)))
     })
-    .bind("127.0.0.1:6789")?
+    .bind("0.0.0.0:6789")?
     .workers(num_cpus::get())
     .run()
 }
